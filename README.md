@@ -7,13 +7,16 @@
   * Morale resets to base value + morale bonus of the argo upgrades
 * The expenditure level selection has a greater impact now
   * The morale impacts are -16, -8, +4 and +8 depending on chosen expenditures
-* All morale impacts of events are made temporary and much more relevant
+* All morale impacts of events are made temporary (programmatically) and much more relevant
   * Morale boosts/penalties are multiplied by 4
   * The effects are temporary and expire after a while just like the MedTech/MechTech events do
   * This is reflected in the UI
-  
+
+## Notes
+Sometimes the color on the total current morale value in Captains Quarters only updates on the second call of RefreshData. It is a minor issue but still...
+
 ## Thanks
-* Morphyum 
+* Morphyum
 * Mpstark
 * janxious
 * Zathoth

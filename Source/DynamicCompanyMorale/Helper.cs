@@ -4,6 +4,7 @@ using System.IO;
 
 
 
+// Not needed atm. Keeping for reference.
 namespace DynamicCompanyMorale
 {
     public class SaveFields

@@ -38,6 +38,7 @@ namespace DynamicCompanyMorale
     }
 
 
+
     /*
     [HarmonyPatch(typeof(GameInstanceSave))]
     [HarmonyPatch(new Type[] { typeof(GameInstance), typeof(SaveReason) })]
@@ -64,7 +65,6 @@ namespace DynamicCompanyMorale
     [HarmonyPatch(typeof(SimGameState), "RemoveSimGameEventResult")]
     public static class SimGameState_RemoveSimGameEventResult_Patch
     {
-
         public static bool Prefix(SimGameState __instance, ref TemporarySimGameResult result)
         {
             bool SkipOriginalMethod = false;
@@ -614,6 +614,7 @@ namespace DynamicCompanyMorale
             Logger.LogLine("----------------------------------------------------------------------------------------------------");
         }
     }
+
 
 
     // Add custom methods to SimGameState
