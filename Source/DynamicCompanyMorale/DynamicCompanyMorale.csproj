@@ -61,9 +61,12 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy $(TargetPath) $(SolutionDir)..\Release\$(TargetName)\ /Y
-copy $(ProjectDir)mod.json $(SolutionDir)..\Release\$(TargetName)\ /Y
-copy $(ProjectDir)README.md $(SolutionDir)..\Release\$(TargetName)\ /Y
-xcopy $(ProjectDir)StreamingAssets\data\simGameConstants\SimGameConstants.json $(SolutionDir)..\Release\$(TargetName)\StreamingAssets\data\simGameConstants\ /Y</PostBuildEvent>
+    <PostBuildEvent>
+xcopy $(TargetPath) $(SolutionDir)..\Release\$(TargetName)\ /Y
+xcopy $(ProjectDir)mod.json $(SolutionDir)..\Release\$(TargetName)\ /Y
+xcopy $(ProjectDir)README.md $(SolutionDir)..\Release\$(TargetName)\ /Y
+xcopy $(ProjectDir)README.md $(SolutionDir)..\ /Y
+xcopy $(ProjectDir)StreamingAssets\data\simGameConstants\SimGameConstants.json $(SolutionDir)..\Release\$(TargetName)\StreamingAssets\data\simGameConstants\ /Y
+	</PostBuildEvent>
   </PropertyGroup>
 </Project>

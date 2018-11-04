@@ -23,7 +23,7 @@ namespace DynamicCompanyMorale
         internal static SimGameEventOption LastModifiedOption;
         internal static int EventMoraleMultiplier = 4;
         
-        // Ben: Temporary morale events
+        // BEN: Temporary morale events
         internal static int EventMoraleDurationBase = 15;
         internal static int EventMoraleDurationNumerator = 240;
 
