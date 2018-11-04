@@ -28,7 +28,7 @@ namespace DynamicCompanyMorale
         internal static int EventMoraleDurationNumerator = 240;
 
         // BEN: Debug (0: nothing, 1: errors, 2:all)
-        internal static int DebugLevel = 2;
+        internal static int DebugLevel = 1;
 
         public static void Init(string directory, string settingsJSON)
         {
