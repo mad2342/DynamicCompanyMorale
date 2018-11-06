@@ -14,13 +14,13 @@
 
 ## Known issues
 * Sometimes the color on the total current morale value in Captains Quarters only updates on the second call of RefreshData. It is a minor issue but still...
-* A combination of existing Morale Stat AND a Tag-Change (rare, i.e. the "Cat"-Event) will display the Tag as temporary on the event result screen...
+* ~~A combination of existing Morale Stat AND a Tag-Change (rare, i.e. the "Cat"-Event) will display the Tag as temporary on the event result screen...~~
 
 ## Thanks
+* Zathoth
+* donZappo
 * Morphyum
 * Mpstark
 * janxious
-* Zathoth
-* donZappo
 * pardeike
 * HBS

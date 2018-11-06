@@ -28,7 +28,7 @@ namespace DynamicCompanyMorale
         internal static int EventMoraleDurationNumerator = 240;
 
         // BEN: Debug (0: nothing, 1: errors, 2:all)
-        internal static int DebugLevel = 1;
+        internal static int DebugLevel = 2;
 
         public static void Init(string directory, string settingsJSON)
         {
@@ -69,7 +69,7 @@ namespace DynamicCompanyMorale
         {
             bool SkipOriginalMethod = false;
 
-            Logger.LogLine("[SimGameState_RemoveSimGameEventResult_PREFIX] Will handle result with Stat.name Morale");
+            Logger.LogLine("[SimGameState_RemoveSimGameEventResult_PREFIX] Will handle result with Stat.name Morale (if any)");
             if (result.Stats != null)
             {
                 for (int i = 0; i < result.Stats.Length; i++)
@@ -128,7 +128,7 @@ namespace DynamicCompanyMorale
             }
             if (SkipOriginalMethod)
             {
-                Logger.LogLine("[SimGameState_RemoveSimGameEventResult_PREFIX] Handled event with Stat.name Morale, will skip original method so Funds and/or Reputation values won't reset!");
+                Logger.LogLine("[SimGameState_RemoveSimGameEventResult_PREFIX] Handled event with Stat.name Morale, will skip original method...");
                 Logger.LogLine("----------------------------------------------------------------------------------------------------");
                 return false;
             }
@@ -162,255 +162,76 @@ namespace DynamicCompanyMorale
     [HarmonyPatch(typeof(SimGameState), "OnEventOptionSelected")]
     public static class SimGameState_OnEventOptionSelected_Patch
     {
-        public static void Prefix(SimGameState __instance, SimGameEventOption option)
+        public static void Prefix(SimGameState __instance, ref SimGameEventOption option)
         {
-            Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] Selected option: " + option.Description.Id);
-            foreach (SimGameEventResultSet eventResultSet in option.ResultSets)
+            try
             {
-                string outcomeID = eventResultSet.Description.Id;
-                Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] Modifying morale value of possible outcome: " + outcomeID + " (if any)");
-
-                foreach (SimGameEventResult eventResult in eventResultSet.Results)
+                Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] Selected option: " + option.Description.Id);
+                foreach (SimGameEventResultSet eventResultSet in option.ResultSets)
                 {
-                    if (eventResult.Stats != null)
+                    Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] Modifying morale value of possible outcome: " + eventResultSet.Description.Id + " (if any)");
+
+                    // Prepare result for extraction of morale stat
+                    SimGameEventResult extractedMoraleResult = new SimGameEventResult();
+                    bool foundMoraleResult = false;
+
+                    foreach (SimGameEventResult eventResult in eventResultSet.Results)
                     {
-                        for (int i = 0; i < eventResult.Stats.Length; i++)
+                        if (eventResult.Stats != null)
                         {
-                            if (eventResult.Stats[i].name == "Morale")
+                            for (int i = 0; i < eventResult.Stats.Length; i++)
                             {
-                                Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] eventResultMoraleValue (before): " + eventResult.Stats[i].value);
-                                eventResult.Stats[i].value = (int.Parse(eventResult.Stats[i].value) * DynamicCompanyMorale.EventMoraleMultiplier).ToString();
-                                Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] eventResultMoraleValue (after): " + eventResult.Stats[i].value);
-
-                                // BEN: Temporary morale events
-                                eventResult.TemporaryResult = true;
-                                //eventResult.ResultDuration = 30;
-                                eventResult.ResultDuration = DynamicCompanyMorale.EventMoraleDurationBase + Math.Abs(DynamicCompanyMorale.EventMoraleDurationNumerator / int.Parse(eventResult.Stats[i].value));
-
-                                Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] eventResult.TemporaryResult: " + eventResult.TemporaryResult.ToString());
-                                Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] eventResult.ResultDuration: " + eventResult.ResultDuration.ToString());
-                            }
-                        }
-                    }
-                }
-            }
-            DynamicCompanyMorale.LastModifiedOption = option;
-
-            Logger.LogLine("----------------------------------------------------------------------------------------------------");
-        }
-    }
-
-    [HarmonyPatch(typeof(SimGameEventTracker), "OnOptionSelected")]
-    public static class SSimGameEventTracker_OnOptionSelected_Patch
-    {
-        public static void Postfix(SimGameEventTracker __instance, SimGameEventResultSet __result)
-        {
-            string outcomeID = __result.Description.Id;
-            Logger.LogLine("[SimGameEventTracker_OnOptionSelected_POSTFIX] Saving morale value of " + outcomeID + " (if any)");
-            foreach (SimGameEventResult eventResult in __result.Results)
-            {
-                if (eventResult.Stats != null)
-                {
-                    for (int i = 0; i < eventResult.Stats.Length; i++)
-                    {
-                        if (eventResult.Stats[i].name == "Morale")
-                        {
-                            Logger.LogLine("[SimGameEventTracker_OnOptionSelected_POSTFIX] eventResultMoraleValue: " + eventResult.Stats[i].value);
-
-                            int CurrentEventMoraleModifier = Fields.EventMoraleModifier;
-                            int UpdatedEventMoraleModifier = CurrentEventMoraleModifier + int.Parse(eventResult.Stats[i].value);
-                            //No need to set here anymore. It's already in the TemporaryResultTracker which is checked in SGNavigationWidgetLeft_UpdateData_POSTFIX 
-                            //Fields.EventMoraleModifier = UpdatedEventMoraleModifier;
-
-                            // Set early
-                            Fields.IsTemporaryMoraleEventActive = true;
-                        }
-                    }
-                }
-            }
-            Logger.LogLine("----------------------------------------------------------------------------------------------------");
-        }
-    }
-
-    [HarmonyPatch(typeof(SimGameState), "BuildSimGameStatsResults")]
-    public static class SimGameState_BuildSimGameStatsResults_Patch
-    {
-        public static bool Prefix(SimGameState __instance, ref SimGameStat[] stats, ref GameContext context, ref SimGameStatDescDef.DescriptionTense tense, ref List<ResultDescriptionEntry> __result, string prefix = "•")
-        {
-            Logger.LogLine("[SimGameState_BuildSimGameStatsResults_PREFIX] Called");
-            // BEN: Check for morale stat
-            // NOTE: Incoming stats are ALL stats from ONE result!
-            bool isMoraleStatInResult = false;
-            foreach (SimGameStat stat in stats)
-            {
-                if (!string.IsNullOrEmpty(stat.name) && stat.value != null)
-                {
-                    if (stat.name == "Morale")
-                    {
-                        isMoraleStatInResult = true;
-                    }
-                }
-            }
-            if (isMoraleStatInResult)
-            {
-                Logger.LogLine("[SimGameState_BuildSimGameStatsResults_PREFIX] Reset all other stats of a moral result entry back to non-temporary so the summary screen works out");
-
-                //----------------------------------------------------------------------------------------------------
-                // Ben: Copy and adapt original method
-
-                List<ResultDescriptionEntry> list = new List<ResultDescriptionEntry>();
-                foreach (SimGameStat simGameStat in stats)
-                {
-                    if (!string.IsNullOrEmpty(simGameStat.name) && simGameStat.value != null)
-                    {
-                        SimGameStatDescDef simGameStatDescDef = null;
-                        GameContext gameContext = new GameContext(context);
-
-                        // BEN: Adapt
-                        if (simGameStat.name == "Morale")
-                        {
-                            tense = SimGameStatDescDef.DescriptionTense.Temporal;
-                        }
-                        else
-                        {
-                            tense = SimGameStatDescDef.DescriptionTense.Default;
-                            // Reset to instance.context to get rid of the temporal part
-                            gameContext = new GameContext(__instance.Context);
-                        }
-                        Logger.LogLine("[SimGameState_BuildSimGameStatsResults_PREFIX] Stat: " + simGameStat.name + ", tense: " + tense.ToString());
-                        // :NEB
-
-                        // BEN: Copy
-                        if (__instance.DataManager.SimGameStatDescDefs.Exists("SimGameStatDesc_" + simGameStat.name))
-                        {
-                            simGameStatDescDef = __instance.DataManager.GetStatDescDef(simGameStat);
-                        }
-                        else
-                        {
-                            int num = simGameStat.name.IndexOf('.');
-                            if (num >= 0)
-                            {
-                                string text = simGameStat.name.Substring(0, num);
-                                if (__instance.DataManager.SimGameStatDescDefs.Exists("SimGameStatDesc_" + text))
+                                if (eventResult.Stats[i].name == "Morale")
                                 {
-                                    simGameStatDescDef = __instance.DataManager.SimGameStatDescDefs.Get("SimGameStatDesc_" + text);
-                                    string[] array = simGameStat.name.Split(new char[]
-                                    {
-                                    '.'
-                                    });
-                                    BattleTechResourceType? battleTechResourceType = null;
-                                    object obj = null;
-                                    string id;
-                                    if (array.Length < 3)
-                                    {
-                                        if (text == "Reputation")
-                                        {
-                                            id = "faction_" + array[1];
-                                            battleTechResourceType = new BattleTechResourceType?(BattleTechResourceType.FactionDef);
-                                        }
-                                        else
-                                        {
-                                            id = null;
-                                            battleTechResourceType = null;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        string value = array[1];
-                                        id = array[2];
-                                        try
-                                        {
-                                            battleTechResourceType = new BattleTechResourceType?((BattleTechResourceType)Enum.Parse(typeof(BattleTechResourceType), value));
-                                        }
-                                        catch
-                                        {
-                                            battleTechResourceType = null;
-                                        }
-                                    }
-                                    if (battleTechResourceType != null)
-                                    {
-                                        obj = __instance.DataManager.Get(battleTechResourceType.Value, id);
-                                    }
-                                    if (obj != null)
-                                    {
-                                        gameContext.SetObject(GameContextObjectTagEnum.ResultObject, obj);
-                                    }
-                                    else
-                                    {
-                                        simGameStatDescDef = null;
-                                    }
+                                    Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] eventResultMoraleValue (unaltered): " + eventResult.Stats[i].value);
+
+                                    // Mark Results[] as containing Morale Stat
+                                    foundMoraleResult = true;
+                                    // Create new temporary result with ONLY Morale Stat in it, value already modified with multiplier
+                                    extractedMoraleResult.Scope = EventScope.Company;
+                                    extractedMoraleResult.Requirements = new RequirementDef(null);
+                                    extractedMoraleResult.AddedTags = new HBS.Collections.TagSet();
+                                    extractedMoraleResult.RemovedTags = new HBS.Collections.TagSet();
+                                    int adjustedMoraleValue = (int.Parse(eventResult.Stats[i].value) * DynamicCompanyMorale.EventMoraleMultiplier);
+                                    SimGameStat Stat = new SimGameStat("Morale", adjustedMoraleValue, false);
+                                    extractedMoraleResult.Stats = new SimGameStat[] { Stat };
+                                    extractedMoraleResult.Actions = new SimGameResultAction[] { };
+                                    extractedMoraleResult.ForceEvents = new SimGameForcedEvent[] { };
+                                    extractedMoraleResult.TemporaryResult = true;
+                                    extractedMoraleResult.ResultDuration = DynamicCompanyMorale.EventMoraleDurationBase + Math.Abs(DynamicCompanyMorale.EventMoraleDurationNumerator / adjustedMoraleValue);
+                                    Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] extractedMoraleResultValue: " + extractedMoraleResult.Stats[0].value);
+
+                                    // Invalidate original morale stat
+                                    //eventResult.Stats[i].name = ""; // Breaks code
+                                    //eventResult.Stats[i].value = "0"; // This is enough
+                                    eventResult.Stats[i].typeString = ""; // Better
+                                    Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] eventResultIsValid: " + !String.IsNullOrEmpty(eventResult.Stats[i].typeString));
                                 }
                             }
                         }
-                        if (simGameStatDescDef != null)
-                        {
-                            if (!simGameStatDescDef.hidden)
-                            {
-                                gameContext.SetObject(GameContextObjectTagEnum.ResultValue, Mathf.Abs(simGameStat.ToSingle()));
-                                if (simGameStat.set)
-                                {
-                                    list.Add(new ResultDescriptionEntry(new Text("{0} {1}{2}", new object[]
-                                    {
-                                    prefix,
-                                    Interpolator.Interpolate(simGameStatDescDef.GetResultString(SimGameStatDescDef.DescriptionType.Set, tense), gameContext),
-                                    Environment.NewLine
-                                    }), gameContext));
-                                }
-                                else if (simGameStat.Type == typeof(int) || simGameStat.Type == typeof(float))
-                                {
-                                    if (simGameStat.ToSingle() > 0f)
-                                    {
-                                        Logger.LogLine("[SimGameState_BuildSimGameStatsResults_PREFIX] Final string: " + Interpolator.Interpolate(simGameStatDescDef.GetResultString(SimGameStatDescDef.DescriptionType.Positive, tense), gameContext));
+                    }
 
-                                        list.Add(new ResultDescriptionEntry(new Text("{0} {1}{2}", new object[]
-                                        {
-                                        prefix,
-                                        Interpolator.Interpolate(simGameStatDescDef.GetResultString(SimGameStatDescDef.DescriptionType.Positive, tense), gameContext),
-                                        Environment.NewLine
-                                        }), gameContext));
-                                    }
-                                    else if (simGameStat.ToSingle() < 0f)
-                                    {
-                                        Logger.LogLine("[SimGameState_BuildSimGameStatsResults_PREFIX] Final string: " + Interpolator.Interpolate(simGameStatDescDef.GetResultString(SimGameStatDescDef.DescriptionType.Negative, tense), gameContext));
+                    if (foundMoraleResult)
+                    {
+                        Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] eventResultSet.Results.Length (before): " + eventResultSet.Results.Length.ToString());
+                        Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] Adding extractedMoraleResult to eventResultSet.Results now");
 
-                                        list.Add(new ResultDescriptionEntry(new Text("{0} {1}{2}", new object[]
-                                        {
-                                        prefix,
-                                        Interpolator.Interpolate(simGameStatDescDef.GetResultString(SimGameStatDescDef.DescriptionType.Negative, tense), gameContext),
-                                        Environment.NewLine
-                                        }), gameContext));
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            string tooltipString = __instance.DataManager.GetTooltipString(simGameStat, null);
-                            list.Add(new ResultDescriptionEntry(new Text("{0} {1} {2}{3}", new object[]
-                            {
-                            prefix,
-                            tooltipString,
-                            simGameStat.value,
-                            Environment.NewLine
-                            }), gameContext));
-                        }
-                        // :NEB
+                        Array.Resize<SimGameEventResult>(ref eventResultSet.Results, eventResultSet.Results.Length + 1);
+                        eventResultSet.Results[eventResultSet.Results.Length - 1] = extractedMoraleResult;
+
+                        Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] eventResultSet.Results.Length (after): " + eventResultSet.Results.Length.ToString());
+
+                        // Set early for UI
+                        Fields.IsTemporaryMoraleEventActive = true;
                     }
                 }
-                // BEN: Modify result, refresh UI and skip original method
-                __result = list;
-                __instance.RoomManager.RefreshLeftNavFromShipScreen();
+                DynamicCompanyMorale.LastModifiedOption = option;
+                // BEN: After the original method is called, everything is already in the TemporaryResultTracker & several "updateData"-Calls are made...
                 Logger.LogLine("----------------------------------------------------------------------------------------------------");
-                return false;
 
-                // :NEB
-                //----------------------------------------------------------------------------------------------------
-            }
-            else
+            } catch (Exception e)
             {
-                Logger.LogLine("----------------------------------------------------------------------------------------------------");
-                // Call original method
-                return true;
+                Logger.LogError(e);
             }
         }
     }
@@ -420,9 +241,11 @@ namespace DynamicCompanyMorale
     {
         public static void Postfix(SimGameState __instance, BattleTech.UI.SimGameInterruptManager.EventPopupEntry entry)
         {
-            Logger.LogLine("[SimGameState_OnEventDismissed_POSTFIX] Reset morale values (if any)");
             foreach (SimGameEventResultSet eventResultSet in DynamicCompanyMorale.LastModifiedOption.ResultSets)
             {
+                Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] Resetting morale value of saved possible outcome: " + eventResultSet.Description.Id + " (if any)");
+                bool foundMoraleResult = false;
+
                 foreach (SimGameEventResult eventResult in eventResultSet.Results)
                 {
                     if (eventResult.Stats != null)
@@ -431,19 +254,30 @@ namespace DynamicCompanyMorale
                         {
                             if (eventResult.Stats[i].name == "Morale")
                             {
-                                // BEN: Seems like at this point the eventResult is already added to the TemporaryResultTracker. So this reset will do nothing (to tracked temporary results).
-                                Logger.LogLine("[SimGameState_OnEventDismissed_POSTFIX] eventResultMoraleValue (before): " + eventResult.Stats[i].value);
-                                eventResult.Stats[i].value = (int.Parse(eventResult.Stats[i].value) / DynamicCompanyMorale.EventMoraleMultiplier).ToString();
-                                Logger.LogLine("[SimGameState_OnEventDismissed_POSTFIX] eventResultMoraleValue (after): " + eventResult.Stats[i].value);
+                                foundMoraleResult = true;
 
-                                // BEN: Reset temporary morale events
-                                eventResult.TemporaryResult = false;
-                                eventResult.ResultDuration = 0;
-                                Logger.LogLine("[SimGameState_OnEventDismissed_POSTFIX] eventResult.TemporaryResult: " + eventResult.TemporaryResult.ToString());
-                                Logger.LogLine("[SimGameState_OnEventDismissed_POSTFIX] eventResult.ResultDuration: " + eventResult.ResultDuration.ToString());
+                                // BEN: Seems like at this point the eventResult is already added to the TemporaryResultTracker.
+                                // So this reset will do nothing (to tracked temporary results).
+                                // Doing this only to minimize potential side-effects
+                                Logger.LogLine("[SimGameState_OnEventDismissed_POSTFIX] eventResultMoraleValue: " + eventResult.Stats[i].value);
+                                Logger.LogLine("[SimGameState_OnEventDismissed_POSTFIX] eventResultIsValid (before): " + !String.IsNullOrEmpty(eventResult.Stats[i].typeString));
+                                if (String.IsNullOrEmpty(eventResult.Stats[i].typeString))
+                                {
+                                    eventResult.Stats[i].typeString = "System.Int32";
+                                }
+                                Logger.LogLine("[SimGameState_OnEventDismissed_POSTFIX] eventResultIsValid (after): " + !String.IsNullOrEmpty(eventResult.Stats[i].typeString));
                             }
                         }
                     }
+                }
+                if (foundMoraleResult)
+                {
+                    Logger.LogLine("[SimGameState_OnEventDismissed_POSTFIX] eventResultSet.Results.Length (before): " + eventResultSet.Results.Length.ToString());
+                    Logger.LogLine("[SimGameState_OnEventDismissed_POSTFIX] Removing extractedMoraleResult from eventResultSet.Results now");
+
+                    Array.Resize<SimGameEventResult>(ref eventResultSet.Results, eventResultSet.Results.Length - 1);
+
+                    Logger.LogLine("[SimGameState_OnEventDismissed_POSTFIX] eventResultSet.Results.Length (after): " + eventResultSet.Results.Length.ToString());
                 }
             }
             // Refresh dependent widgets
@@ -558,12 +392,10 @@ namespace DynamicCompanyMorale
             
             // Validate that this is called FIRST after Load||Mission||Conversations... otherwise Save/Load has to be re-enabled!
             Fields.IsTemporaryMoraleEventActive = ___simState.IsTemporaryMoraleEventActive();
-            //int AbsoluteMoraleValueOfAllTemporaryResults = ___simState.GetAbsoluteMoraleValueOfAllTemporaryResults();
-            Fields.EventMoraleModifier = ___simState.GetAbsoluteMoraleValueOfAllTemporaryResults();
-
-            //Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check AbsoluteMoraleValueOfAllTemporaryResults: " + AbsoluteMoraleValueOfAllTemporaryResults);
-            Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check Fields.EventMoraleModifier: " + Fields.EventMoraleModifier);
             Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check Fields.IsTemporaryMoraleEventActive: " + Fields.IsTemporaryMoraleEventActive);
+
+            Fields.EventMoraleModifier = ___simState.GetAbsoluteMoraleValueOfAllTemporaryResults();
+            Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check Fields.EventMoraleModifier: " + Fields.EventMoraleModifier);
             Logger.LogLine("----------------------------------------------------------------------------------------------------");
         }
     }
@@ -683,7 +515,7 @@ namespace DynamicCompanyMorale
                         {
                             if (simGameStat.name == "Morale")
                             {
-                                Logger.LogLine("[Custom.IsTemporaryMoraleEventActive] True");
+                                //Logger.LogLine("[Custom.IsTemporaryMoraleEventActive] True");
                                 IsTemporaryMoraleEventActive = true;
                             }
                         }
