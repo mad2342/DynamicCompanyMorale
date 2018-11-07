@@ -2,9 +2,9 @@
 	"Name": "DynamicCompanyMorale",
 	"Enabled": true,
    
-	"Version": "0.9",
+	"Version": "1.0",
 	"Description": "Company morale system is made more interesting by introducing temporary morale events and meaningful financial decisions at the start of each quarter.",
-	"Author": "Ben",
+	"Author": "Mad",
 
 	"DLL": "DynamicCompanyMorale.dll",
 }
