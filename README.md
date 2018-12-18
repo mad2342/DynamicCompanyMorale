@@ -19,6 +19,7 @@
 ## Thanks
 * Zathoth
 * donZappo
+* Cydonia07
 * Morphyum
 * Mpstark
 * janxious

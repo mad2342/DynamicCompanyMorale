@@ -28,7 +28,7 @@ namespace DynamicCompanyMorale
         internal static int EventMoraleDurationNumerator = 240;
 
         // BEN: Debug (0: nothing, 1: errors, 2:all)
-        internal static int DebugLevel = 1;
+        internal static int DebugLevel = 2;
 
         public static void Init(string directory, string settingsJSON)
         {
@@ -149,11 +149,15 @@ namespace DynamicCompanyMorale
 
         public static void Postfix(SimGameState __instance)
         {
+            Fields.LastMonthExpenditureModifier = __instance.ExpenditureMoraleValue[__instance.ExpenditureLevel];
+
+            /*
             int CurrentBaseMorale = __instance.GetCurrentBaseMorale();
             Logger.LogLine("[SimGameState_OnNewQuarterBegin_POSTFIX] Resetting Morale to CurrentBaseMorale(" + CurrentBaseMorale + ")");
             __instance.CompanyStats.ModifyStat<int>("Mission", 0, "COMPANY_MonthlyStartingMorale", StatCollection.StatOperation.Set, CurrentBaseMorale, -1, true);
             __instance.CompanyStats.ModifyStat<int>("Mission", 0, "Morale", StatCollection.StatOperation.Set, CurrentBaseMorale, -1, true);
             Logger.LogLine("----------------------------------------------------------------------------------------------------");
+            */
         }
     }
 
@@ -298,7 +302,7 @@ namespace DynamicCompanyMorale
     [HarmonyPatch(typeof(SGCaptainsQuartersStatusScreen), "RefreshData")]
     public static class SGCaptainsQuartersStatusScreen_RefreshData_Patch
     {
-        public static void Postfix(SGCaptainsQuartersStatusScreen __instance, SGMoraleBar ___MoralBar, SimGameState ___simState)
+        public static void Postfix(SGCaptainsQuartersStatusScreen __instance, bool showMoraleChange, SGMoraleBar ___MoralBar, SimGameState ___simState)
         {
             Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_POSTFIX] SimGameState.Morale is " + ___simState.Morale.ToString());
 
@@ -307,6 +311,8 @@ namespace DynamicCompanyMorale
             Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_POSTFIX] CurrentExpenditureMoraleValue is " + CurrentExpenditureMoraleValue.ToString());
             int EventMoraleModifier = Fields.EventMoraleModifier;
             Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_POSTFIX] EventMoraleModifier is " + EventMoraleModifier.ToString());
+
+            int CurrentMoraleRating = CurrentBaseMorale + Fields.LastMonthExpenditureModifier + EventMoraleModifier;
             int ProjectedMoraleRating = CurrentBaseMorale + CurrentExpenditureMoraleValue + EventMoraleModifier;
 
             if (ProjectedMoraleRating < 0)
@@ -319,8 +325,20 @@ namespace DynamicCompanyMorale
             }
 
             // No setting of values here, just preview!
+
+            /* 1.2
             float percentage = (float)ProjectedMoraleRating / (float)___simState.Constants.Story.MaxMorale;
             ___MoralBar.SetMorale(percentage, ProjectedMoraleRating);
+            */
+
+            if (showMoraleChange)
+            {
+                ___MoralBar.ShowMoraleChange(CurrentMoraleRating, ProjectedMoraleRating);
+            }
+            else
+            {
+                ___MoralBar.ShowMoraleChange(ProjectedMoraleRating, ProjectedMoraleRating);
+            }
 
             Logger.LogLine("----------------------------------------------------------------------------------------------------");
         }
@@ -363,6 +381,7 @@ namespace DynamicCompanyMorale
     {
         public static void Postfix(SGFinancialForecastWidget __instance, TextMeshProUGUI ___CurrSpendingStyleText, SimGameState ___simState)
         {
+            /*
             string ExpenditureLevelString = ___simState.ExpenditureLevel.ToString();
             int CurrentExpenditureMoraleValue = ___simState.ExpenditureMoraleValue[___simState.ExpenditureLevel];
             string text = ExpenditureLevelString;
@@ -380,6 +399,7 @@ namespace DynamicCompanyMorale
             {
                 text
             });
+            */
         }
     }
 
@@ -396,50 +416,51 @@ namespace DynamicCompanyMorale
 
             Fields.EventMoraleModifier = ___simState.GetAbsoluteMoraleValueOfAllTemporaryResults();
             Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check Fields.EventMoraleModifier: " + Fields.EventMoraleModifier);
+
             Logger.LogLine("----------------------------------------------------------------------------------------------------");
         }
     }
 
-    [HarmonyPatch(typeof(SGMoraleBar), "SetMorale")]
-    public static class SGMoraleBar_SetMorale_Patch
+    [HarmonyPatch(typeof(SGMoraleBar), "RefreshTextForMoraleValue")]
+    public static class SGMoraleBar_RefreshTextForMoraleValue_Patch
     {
         public static void Postfix(SGMoraleBar __instance)
         {
             int EventMoraleModifier = Fields.EventMoraleModifier;
-            TextMeshProUGUI moraleTotal = Traverse.Create(__instance).Field("moraleTotal").GetValue<TextMeshProUGUI>();
-            TextMeshProUGUI moraleTitle = Traverse.Create(__instance).Field("moraleTitle").GetValue<TextMeshProUGUI>();
+            TextMeshProUGUI moraleValueText = Traverse.Create(__instance).Field("moraleValueText").GetValue<TextMeshProUGUI>();
+            TextMeshProUGUI moraleTitleText = Traverse.Create(__instance).Field("moraleTitleText").GetValue<TextMeshProUGUI>();
             Color color;
             string text = "Morale";
 
-            //Logger.LogLine("[SGMoraleBar_SetMorale_POSTFIX] IsTemporaryMoraleEventActive: " + simGameState.IsTemporaryMoraleEventActive().ToString());
+            //Logger.LogLine("[SGMoraleBar_RefreshTextForMoraleValue_POSTFIX] IsTemporaryMoraleEventActive: " + simGameState.IsTemporaryMoraleEventActive().ToString());
 
             if (EventMoraleModifier > 0)
             {
                 color = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.green;
-                Logger.LogLine("[SGMoraleBar_SetMorale_POSTFIX] Green");
+                Logger.LogLine("[SGMoraleBar_RefreshTextForMoraleValue_POSTFIX] Green");
                 text += " (+" + EventMoraleModifier.ToString() + " from events)";
             }
             else if (EventMoraleModifier < 0)
             {
                 color = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.red;
-                Logger.LogLine("[SGMoraleBar_SetMorale_POSTFIX] Red");
+                Logger.LogLine("[SGMoraleBar_RefreshTextForMoraleValue_POSTFIX] Red");
                 text += " (" + EventMoraleModifier.ToString() + " from events)";
             }
             // Zero from two or more temp results
             else if (Fields.IsTemporaryMoraleEventActive)
             {
                 color = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.blue;
-                Logger.LogLine("[SGMoraleBar_SetMorale_POSTFIX] Blue");
+                Logger.LogLine("[SGMoraleBar_RefreshTextForMoraleValue_POSTFIX] Blue");
                 text += " (+ -" + EventMoraleModifier.ToString() + " from events)";
             }
             // Zero from no active temp results
             else
             {
                 color = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.white;
-                Logger.LogLine("[SGMoraleBar_SetMorale_POSTFIX] White");
+                Logger.LogLine("[SGMoraleBar_RefreshTextForMoraleValue_POSTFIX] White");
             }
-            moraleTotal.color = color;
-            moraleTitle.SetText("{0}", new object[]
+            moraleValueText.color = color;
+            moraleTitleText.SetText("{0}", new object[]
             {
                 text
             });
