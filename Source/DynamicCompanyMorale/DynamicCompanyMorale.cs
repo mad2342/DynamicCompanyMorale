@@ -12,8 +12,7 @@ using BattleTech.Data;
 using BattleTech.StringInterpolation;
 using System.Collections.Generic;
 using Localize;
-
-
+using BattleTech.UI.Tooltips;
 
 namespace DynamicCompanyMorale
 {
@@ -38,27 +37,35 @@ namespace DynamicCompanyMorale
     }
 
 
-
-    /*
-    [HarmonyPatch(typeof(GameInstanceSave))]
-    [HarmonyPatch(new Type[] { typeof(GameInstance), typeof(SaveReason) })]
-    public static class GameInstanceSave_Constructor_Patch
+    // Fix hardcoded(!) tooltip descriptions
+    [HarmonyPatch(typeof(MoraleTooltipData), MethodType.Constructor)]
+    [HarmonyPatch(new Type[] { typeof(SimGameState), typeof(int) })]
+    public static class MoraleTooltipData_Constructor_Patch
     {
-        static void Postfix(GameInstanceSave __instance)
+        static void Postfix(MoraleTooltipData __instance, SimGameState sim, int moraleLevel)
         {
-            Helper.SaveState(__instance.InstanceGUID, __instance.SaveTime);
+            SimGameState simGameState = sim ?? UnityGameInstance.BattleTechGame.Simulation;
+            if (simGameState == null)
+            {
+                return;
+            }
+
+            // Get
+            //BaseDescriptionDef levelDescription = (BaseDescriptionDef)AccessTools.Property(typeof(MoraleTooltipData), "levelDescription").GetValue(__instance, null);
+
+            string levelDescriptionName = "Morale: " + simGameState.GetDescriptorForMoraleLevel(moraleLevel);
+            string levelDescriptionDetails = "At this level of morale, you will gain " + __instance.resolvePerTurn + " Resolve points per round of battle.";
+            Logger.LogLine("[MoraleTooltipData_Constructor_POSTFIX] levelDescriptionName: " + levelDescriptionName);
+            Logger.LogLine("[MoraleTooltipData_Constructor_POSTFIX] levelDescriptionDetails: " + levelDescriptionDetails);
+            BaseDescriptionDef customLevelDescription = new BaseDescriptionDef("TooltipMoraleCustom", levelDescriptionName, levelDescriptionDetails, "");
+
+            // Set
+            //BaseDescriptionDef levelDescription = AccessTools.Property(typeof(MoraleTooltipData), "levelDescription").SetValue(__instance, customLevelDescription, null);
+            new Traverse(__instance).Property("levelDescription").SetValue(customLevelDescription);
+
         }
     }
 
-    [HarmonyPatch(typeof(GameInstance), "Load")]
-    public static class GameInstance_Load_Patch
-    {
-        static void Prefix(GameInstanceSave save)
-        {
-            Helper.LoadState(save.InstanceGUID, save.SaveTime);
-        }
-    }
-    */
 
 
 
@@ -149,8 +156,7 @@ namespace DynamicCompanyMorale
 
         public static void Postfix(SimGameState __instance)
         {
-            Fields.LastMonthExpenditureModifier = __instance.ExpenditureMoraleValue[__instance.ExpenditureLevel];
-
+            // Reset is not advised anymore as the new morale widget shows "Current Morale" in Quarters summary. Probably better to set regularly in LeftWidgetUpdate?
             /*
             int CurrentBaseMorale = __instance.GetCurrentBaseMorale();
             Logger.LogLine("[SimGameState_OnNewQuarterBegin_POSTFIX] Resetting Morale to CurrentBaseMorale(" + CurrentBaseMorale + ")");
@@ -158,6 +164,15 @@ namespace DynamicCompanyMorale
             __instance.CompanyStats.ModifyStat<int>("Mission", 0, "Morale", StatCollection.StatOperation.Set, CurrentBaseMorale, -1, true);
             Logger.LogLine("----------------------------------------------------------------------------------------------------");
             */
+
+            // A reset to the absolute morale value according to the new ruleset (and including temp events) is still advisory to "fix" savegames prior to this mod enabled...
+            Logger.LogLine("[SimGameState_OnNewQuarterBegin_POSTFIX] Check before setting SimGameState.Morale: " + __instance.Morale.ToString());
+
+            int CurrentAbsoluteMorale = __instance.GetCurrentAbsoluteMorale();
+            //__instance.CompanyStats.ModifyStat<int>("Mission", 0, "COMPANY_MonthlyStartingMorale", StatCollection.StatOperation.Set, CurrentAbsoluteMorale, -1, true);
+            __instance.CompanyStats.ModifyStat<int>("Mission", 0, "Morale", StatCollection.StatOperation.Set, CurrentAbsoluteMorale, -1, true);
+
+            Logger.LogLine("[SimGameState_OnNewQuarterBegin_POSTFIX] Check after setting SimGameState.Morale: " + __instance.Morale.ToString());
         }
     }
 
@@ -295,55 +310,82 @@ namespace DynamicCompanyMorale
         }
     }
 
-
-
-    // BEN: This screen has actually 3 states (ScreensModes)[DefaultStatus, QuarterlyReport, NextQuarterProjections].Keep in mind! 
-    // It's probably better to NOT rely on global morale getters here...
-    [HarmonyPatch(typeof(SGCaptainsQuartersStatusScreen), "RefreshData")]
-    public static class SGCaptainsQuartersStatusScreen_RefreshData_Patch
+    // The really dirty hack to override the wrong moraleValue tooltip during budget selection for next quarter (NextQuarterProjections)
+    [HarmonyPatch(typeof(TooltipManager), "SpawnTooltip")]
+    public static class TooltipManager_SpawnTooltip_Patch
     {
-        public static void Postfix(SGCaptainsQuartersStatusScreen __instance, bool showMoraleChange, SGMoraleBar ___MoralBar, SimGameState ___simState)
+        public static void Prefix(TooltipManager __instance, ref object data)
         {
-            Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_POSTFIX] SimGameState.Morale is " + ___simState.Morale.ToString());
+            if (data.GetType().Name == "String") {
+                string tooltipText = (string)data;
+                Logger.LogLine("[TooltipManager_SpawnTooltip_PREFIX] tooltipText: " + tooltipText);
+                bool IsMoraleValueTextTooltip = tooltipText.Contains("Resolve/Turn");
+                bool IsNextQuarterProjections = Fields.IsNextQuarterProjections;
 
-            int CurrentBaseMorale = ___simState.GetCurrentBaseMorale();
-            int CurrentExpenditureMoraleValue = ___simState.ExpenditureMoraleValue[___simState.ExpenditureLevel];
-            Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_POSTFIX] CurrentExpenditureMoraleValue is " + CurrentExpenditureMoraleValue.ToString());
-            int EventMoraleModifier = Fields.EventMoraleModifier;
-            Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_POSTFIX] EventMoraleModifier is " + EventMoraleModifier.ToString());
-
-            int CurrentMoraleRating = CurrentBaseMorale + Fields.LastMonthExpenditureModifier + EventMoraleModifier;
-            int ProjectedMoraleRating = CurrentBaseMorale + CurrentExpenditureMoraleValue + EventMoraleModifier;
-
-            if (ProjectedMoraleRating < 0)
-            {
-                ProjectedMoraleRating = 0;
-            }
-            else if (ProjectedMoraleRating > 50)
-            {
-                ProjectedMoraleRating = 50;
+                if (IsMoraleValueTextTooltip && IsNextQuarterProjections)
+                {
+                    data = "You will generate <color=#F79B26>" + Fields.ProjectedResolvePerTurn + " Resolve/Turn</color> in combat";
+                    Logger.LogLine("[TooltipManager_SpawnTooltip_PREFIX] Modified data: " + data);
+                }
             }
 
-            // No setting of values here, just preview!
-
-            /* 1.2
-            float percentage = (float)ProjectedMoraleRating / (float)___simState.Constants.Story.MaxMorale;
-            ___MoralBar.SetMorale(percentage, ProjectedMoraleRating);
+            /*
+            BaseDescriptionDef baseDescriptionDef = (BaseDescriptionDef)data;
+            if (baseDescriptionDef != null)
+            {
+                Logger.LogLine("[TooltipManager_SpawnTooltip_POSTFIX] baseDescriptionDef.Name: " + baseDescriptionDef.Name);
+                Logger.LogLine("[TooltipManager_SpawnTooltip_POSTFIX] baseDescriptionDef.Details " + baseDescriptionDef.Details);
+                Logger.LogLine("[TooltipManager_SpawnTooltip_POSTFIX] baseDescriptionDef.Icon: " + baseDescriptionDef.Icon);
+            }
             */
-
-            if (showMoraleChange)
-            {
-                ___MoralBar.ShowMoraleChange(CurrentMoraleRating, ProjectedMoraleRating);
-            }
-            else
-            {
-                ___MoralBar.ShowMoraleChange(ProjectedMoraleRating, ProjectedMoraleRating);
-            }
-
-            Logger.LogLine("----------------------------------------------------------------------------------------------------");
         }
     }
 
+
+    // BEN: This screen has actually 3 states (ScreenModes): DefaultStatus, QuarterlyReport, NextQuarterProjections. Keep in mind!
+    [HarmonyPatch(typeof(SGCaptainsQuartersStatusScreen), "RefreshData")]
+    public static class SGCaptainsQuartersStatusScreen_RefreshData_Patch
+    {
+        public static void Prefix(SGCaptainsQuartersStatusScreen __instance, bool showMoraleChange, SimGameState ___simState)
+        {
+            if (showMoraleChange)
+            {
+                Fields.IsNextQuarterProjections = true;
+                Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] Fields.IsNextQuarterProjections: " + Fields.IsNextQuarterProjections.ToString());
+
+                int ProjectedExpenditureMoraleValue = ___simState.ExpenditureMoraleValue[___simState.ExpenditureLevel];
+                Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] ProjectedExpenditureMoraleValue: " + ProjectedExpenditureMoraleValue);
+
+                int ProjectedMorale = ___simState.Morale + ProjectedExpenditureMoraleValue;
+                Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] ProjectedMorale: " + ProjectedMorale);
+
+                MoraleConstantsDef moraleConstants = ___simState.CombatConstants.MoraleConstants;
+                for (int i = moraleConstants.BaselineAddFromSimGameThresholds.Length - 1; i >= 0; i--)
+                {
+                    if (ProjectedMorale > moraleConstants.BaselineAddFromSimGameThresholds[i])
+                    {
+                        Fields.ProjectedResolvePerTurn =  moraleConstants.BaselineAddFromSimGameValues[i];
+                        Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] Fields.ProjectedResolvePerTurn: " + Fields.ProjectedResolvePerTurn);
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                Fields.IsNextQuarterProjections = false;
+                Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] Fields.IsNextQuarterProjections: " + Fields.IsNextQuarterProjections.ToString());
+            }
+        }
+
+        public static void Postfix(SGCaptainsQuartersStatusScreen __instance, bool showMoraleChange, SGMoraleBar ___MoralBar, SimGameState ___simState)
+        {
+            //Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_POSTFIX]");
+            //Logger.LogLine("----------------------------------------------------------------------------------------------------");
+        }
+    }
+    
+
+    // @ToDo: Probably obsolete. Comment out and test!
     [HarmonyPatch(typeof(SGCaptainsQuartersStatusScreen), "Dismiss")]
     public static class SGCaptainsQuartersStatusScreen_Dismiss_Patch
     {
@@ -351,21 +393,9 @@ namespace DynamicCompanyMorale
         {
             Logger.LogLine("[SGCaptainsQuartersStatusScreen_Dismiss_PREFIX] Check before setting SimGameState.Morale: " + ___simState.Morale.ToString());
 
-            int CurrentBaseMorale = ___simState.GetCurrentBaseMorale();
-            int CurrentExpenditureMoraleValue = ___simState.ExpenditureMoraleValue[___simState.ExpenditureLevel];
-            int EventMoraleModifier = Fields.EventMoraleModifier;
-
-            int CorrectedMoraleRating = CurrentBaseMorale + CurrentExpenditureMoraleValue + EventMoraleModifier;
-            if (CorrectedMoraleRating < 0)
-            {
-                CorrectedMoraleRating = 0;
-            }
-            else if (CorrectedMoraleRating > 50)
-            {
-                CorrectedMoraleRating = 50;
-            }
-            //___simState.CompanyStats.ModifyStat<int>("Mission", 0, "COMPANY_MonthlyStartingMorale", StatCollection.StatOperation.Set, CurrentBaseMorale, -1, true);
-            ___simState.CompanyStats.ModifyStat<int>("Mission", 0, "Morale", StatCollection.StatOperation.Set, CorrectedMoraleRating, -1, true);
+            int CurrentAbsoluteMorale = ___simState.GetCurrentAbsoluteMorale();
+            //___simState.CompanyStats.ModifyStat<int>("Mission", 0, "COMPANY_MonthlyStartingMorale", StatCollection.StatOperation.Set, CurrentAbsoluteMorale, -1, true);
+            ___simState.CompanyStats.ModifyStat<int>("Mission", 0, "Morale", StatCollection.StatOperation.Set, CurrentAbsoluteMorale, -1, true);
 
             Logger.LogLine("[SGCaptainsQuartersStatusScreen_Dismiss_PREFIX] Check after setting SimGameState.Morale: " + ___simState.Morale.ToString());
 
@@ -381,7 +411,6 @@ namespace DynamicCompanyMorale
     {
         public static void Postfix(SGFinancialForecastWidget __instance, TextMeshProUGUI ___CurrSpendingStyleText, SimGameState ___simState)
         {
-            /*
             string ExpenditureLevelString = ___simState.ExpenditureLevel.ToString();
             int CurrentExpenditureMoraleValue = ___simState.ExpenditureMoraleValue[___simState.ExpenditureLevel];
             string text = ExpenditureLevelString;
@@ -399,7 +428,6 @@ namespace DynamicCompanyMorale
             {
                 text
             });
-            */
         }
     }
 
@@ -408,8 +436,16 @@ namespace DynamicCompanyMorale
     {
         public static void Postfix(SGNavigationWidgetLeft __instance, SimGameState ___simState)
         {
+            // Test
+            ___simState.FixExpenditureLevel();
+
             Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check SimGameState.Morale: " + ___simState.Morale.ToString());
+
+            Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check SimGameState.ExpenditureLevel: " + ___simState.ExpenditureLevel.ToString());
+            StatCollection companyStats = (StatCollection)AccessTools.Field(typeof(SimGameState), "companyStats").GetValue(___simState);
+            Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check SimGameState.companyStats.ExpenseLevel: " + companyStats.GetValue<int>("ExpenseLevel"));
             
+
             // Validate that this is called FIRST after Load||Mission||Conversations... otherwise Save/Load has to be re-enabled!
             Fields.IsTemporaryMoraleEventActive = ___simState.IsTemporaryMoraleEventActive();
             Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check Fields.IsTemporaryMoraleEventActive: " + Fields.IsTemporaryMoraleEventActive);
@@ -424,15 +460,16 @@ namespace DynamicCompanyMorale
     [HarmonyPatch(typeof(SGMoraleBar), "RefreshTextForMoraleValue")]
     public static class SGMoraleBar_RefreshTextForMoraleValue_Patch
     {
-        public static void Postfix(SGMoraleBar __instance)
+        public static void Postfix(SGMoraleBar __instance, int value, SimGameState ___simState)
         {
             int EventMoraleModifier = Fields.EventMoraleModifier;
             TextMeshProUGUI moraleValueText = Traverse.Create(__instance).Field("moraleValueText").GetValue<TextMeshProUGUI>();
             TextMeshProUGUI moraleTitleText = Traverse.Create(__instance).Field("moraleTitleText").GetValue<TextMeshProUGUI>();
             Color color;
-            string text = "Morale";
+            int moraleLevelFromMoraleValue = ___simState.GetMoraleLevelFromMoraleValue(value);
+            string text = "MORALE: " + ___simState.GetDescriptorForMoraleLevel(moraleLevelFromMoraleValue);
 
-            //Logger.LogLine("[SGMoraleBar_RefreshTextForMoraleValue_POSTFIX] IsTemporaryMoraleEventActive: " + simGameState.IsTemporaryMoraleEventActive().ToString());
+            //Logger.LogLine("[SGMoraleBar_RefreshTextForMoraleValue_POSTFIX] IsTemporaryMoraleEventActive: " + ___simState.IsTemporaryMoraleEventActive().ToString());
 
             if (EventMoraleModifier > 0)
             {
@@ -451,7 +488,7 @@ namespace DynamicCompanyMorale
             {
                 color = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.blue;
                 Logger.LogLine("[SGMoraleBar_RefreshTextForMoraleValue_POSTFIX] Blue");
-                text += " (+ -" + EventMoraleModifier.ToString() + " from events)";
+                text += " (+ - " + EventMoraleModifier.ToString() + " from events)";
             }
             // Zero from no active temp results
             else
@@ -464,6 +501,7 @@ namespace DynamicCompanyMorale
             {
                 text
             });
+
             Logger.LogLine("----------------------------------------------------------------------------------------------------");
         }
     }
@@ -473,6 +511,61 @@ namespace DynamicCompanyMorale
     // Add custom methods to SimGameState
     public static class Custom
     {
+        // Fix potential vanilla bug with randomly setting ExpenseLevel at GameLoad
+        public static void FixExpenditureLevel(this SimGameState simGameState)
+        {
+            int CurrentMorale = simGameState.Morale;
+            Logger.LogLine("[Custom.FixExpenditureLevel] SimGameState.Morale: " + simGameState.Morale);
+            int CurrentBaseMorale = simGameState.GetCurrentBaseMorale();
+            int AbsoluteMoraleValueOfAllTemporaryResults = simGameState.GetAbsoluteMoraleValueOfAllTemporaryResults();
+
+            int ExpectedExpenseLevelMoraleValue = CurrentMorale - CurrentBaseMorale - AbsoluteMoraleValueOfAllTemporaryResults;
+            Logger.LogLine("[Custom.FixExpenditureLevel] ExpectedExpenseLevelMoraleValue: " + ExpectedExpenseLevelMoraleValue.ToString());
+
+            foreach (KeyValuePair<EconomyScale, int> keyValuePair in simGameState.ExpenditureMoraleValue)
+            {
+                // MoraleValue: keyValuePair.Value
+                if (keyValuePair.Value == ExpectedExpenseLevelMoraleValue)
+                {
+                    EconomyScale ExpectedEconomyScale = keyValuePair.Key;
+                    Logger.LogLine("[Custom.FixExpenditureLevel] ExpectedEconomyScale: " + ExpectedEconomyScale.ToString());
+                    Logger.LogLine("[Custom.FixExpenditureLevel] SimGameState.ExpenditureLevel: " + simGameState.ExpenditureLevel);
+
+                    if (ExpectedEconomyScale == simGameState.ExpenditureLevel)
+                    {
+                        Logger.LogLine("[Custom.FixExpenditureLevel] Everything as expected");
+                        return;
+                    }
+                    else
+                    {
+                        Logger.LogLine("[Custom.FixExpenditureLevel] APPLY FIX: Setting ExpenditureLevel to expected value");
+                        simGameState.SetExpenditureLevel(ExpectedEconomyScale, false);
+                        return;
+                    }
+                }
+            }
+            Logger.LogLine("[Custom.FixExpenditureLevel] Did not find matching EconomyScale for ExpectedExpenseLevelMoraleValue");
+        }
+
+        public static int GetCurrentAbsoluteMorale(this SimGameState simGameState)
+        {
+            int CurrentBaseMorale = simGameState.GetCurrentBaseMorale();
+            int CurrentExpenditureMoraleValue = simGameState.ExpenditureMoraleValue[simGameState.ExpenditureLevel];
+            int EventMoraleModifier = Fields.EventMoraleModifier;
+
+            int CurrentAbsoluteMorale = CurrentBaseMorale + CurrentExpenditureMoraleValue + EventMoraleModifier;
+            if (CurrentAbsoluteMorale < 0)
+            {
+                CurrentAbsoluteMorale = 0;
+            }
+            else if (CurrentAbsoluteMorale > 50)
+            {
+                CurrentAbsoluteMorale = 50;
+            }
+            Logger.LogLine("[Custom.GetCurrentAbsoluteMorale]" + CurrentAbsoluteMorale.ToString());
+            return CurrentAbsoluteMorale;
+        }
+
         public static int GetCurrentBaseMorale(this SimGameState simGameState)
         {
             int ArgoMoraleModifier = 0;
