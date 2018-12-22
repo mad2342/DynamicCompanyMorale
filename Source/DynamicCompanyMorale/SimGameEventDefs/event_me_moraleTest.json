@@ -1,0 +1,226 @@
+{
+    "Description" : {
+        "Id" : "event_mw_moraleTest",
+        "Name" : "Festival of Lights",
+        "Details" : "As the morning briefing draws to a close, Darius raises a final point of discussion. \"The crew's been wound a little tight lately, and the lounge is empty too often. [[TGT_MW,{TGT_MW.Callsign}]] brought it to my attention, along with a suggestion that we 'do something' about it. I'm thinking that some kind of celebration is in order\u2026 anyone have any ideas?\"\r\n\r\nSumire raises her hand. \"My family used to observe the Festival of Lights around this time of year. We'd light candles for the dead, then throw a wild party in their honor.\"\r\n\r\nYang snorts. \"C'mon, Sumire. That sounds a little highbrow for people who go skinny dipping in coolant tanks. How 'bout we give {TGT_MW.Callsign} permission to throw a keg party instead?\"",
+        "Icon" : "uixTxrSpot_Lounge.png"
+    },
+    "Scope" : "MechWarrior",
+    "Weight" : 10,
+    "Requirements" : {
+        "Scope" : "MechWarrior",
+        "RequirementTags" : {
+            "items" : null,
+            "tagSetSourceFile" : "Tags/PilotTags"
+        },
+        "ExclusionTags" : {
+            "items" : null,
+            "tagSetSourceFile" : ""
+        },
+        "RequirementComparisons" : [
+            {
+                "obj" : "Injuries",
+                "op" : "Equal",
+                "val" : 0,
+                "valueConstant" : "0"
+            }
+        ]
+    },
+    "AdditionalRequirements" : [
+        {
+            "Scope" : "Company",
+            "RequirementTags" : {
+                "items" : [
+                    "argo_rec_lounge1"
+                ],
+                "tagSetSourceFile" : "Tags/CompanyTags"
+            },
+			"ExclusionTags" : {
+				"items" : null,
+				"tagSetSourceFile" : ""
+			},
+            "RequirementComparisons" : []
+        }
+    ],
+    "AdditionalObjects" : [
+        {
+            "Scope" : "SecondaryMechWarrior",
+            "Requirements" : {
+                "Scope" : "SecondaryMechWarrior",
+                "RequirementTags" : {
+                    "items" : null,
+                    "tagSetSourceFile" : "Tags/PilotTags"
+                },
+                "ExclusionTags" : {
+                    "items" : null,
+                    "tagSetSourceFile" : ""
+                },
+                "RequirementComparisons" : [
+                    {
+                        "obj" : "Injuries",
+                        "op" : "Equal",
+                        "val" : 0,
+                        "valueConstant" : "0"
+                    }
+                ]
+            }
+        }
+    ],
+    "Options" : [
+        {
+            "Description" : {
+                "Id" : "outcome_0",
+                "Name" : "Ignore {TGT_MW.Callsign}'s request.",
+                "Details" : "non-participation",
+                "Icon" : ""
+            },
+            "RequirementList" : [],
+            "ResultSets" : [
+                {
+                    "Description" : {
+                        "Id" : "outcome_0_0",
+                        "Name" : "stingy commander",
+                        "Details" : "\"The crew knows where the lounge is,\" you observe neutrally. \"If they need entertainment, I'm sure they'll find a way.\"\r\n\r\nThe staff exchanges glances, and then the meeting breaks up.",
+                        "Icon" : ""
+                    },
+                    "Weight" : 100,
+                    "Results" : [
+                        {
+                            "Scope" : "Company",
+                            "Requirements" : null,
+                            "AddedTags" : {
+                                "items" : null,
+                                "tagSetSourceFile" : ""
+                            },
+                            "RemovedTags" : {
+                                "items" : null,
+                                "tagSetSourceFile" : ""
+                            },
+                            "Stats" : [
+                                {
+                                    "typeString" : "System.Int32",
+                                    "name" : "Morale",
+                                    "value" : "-7",
+                                    "set" : false,
+                                    "valueConstant" : null
+                                }
+                            ],
+                            "Actions" : null,
+                            "ForceEvents" : null,
+                            "TemporaryResult" : false,
+                            "ResultDuration" : 0
+                        }
+                    ]
+                }
+            ],
+            "Requirements" : {
+                "Scope" : "Company",
+                "RequirementTags" : {
+                    "items" : null,
+                    "tagSetSourceFile" : ""
+                },
+                "ExclusionTags" : {
+                    "items" : null,
+                    "tagSetSourceFile" : ""
+                },
+                "RequirementComparisons" : []
+            }
+        },
+        {
+            "Description" : {
+                "Id" : "outcome_1",
+                "Name" : "Celebrate the Festival of Lights.",
+                "Details" : "[\u00A25,000]",
+                "Icon" : ""
+            },
+            "RequirementList" : [
+                {
+                    "Scope" : "Company",
+                    "RequirementTags" : {
+                        "items" : null,
+                        "tagSetSourceFile" : ""
+                    },
+                    "ExclusionTags" : {
+                        "items" : null,
+                        "tagSetSourceFile" : ""
+                    },
+                    "RequirementComparisons" : []
+                }
+            ],
+            "ResultSets" : [
+                {
+                    "Description" : {
+                        "Id" : "outcome_1_0",
+                        "Name" : "Now that was an event",
+                        "Details" : "The lounge looks like a different place in the light of a thousand burning candles. As Sumire pours shot after shot for the attendees, the stories being shared go from sad to bawdy to riotously funny. Then the music takes an upturn, and things really start heating up.\r\n\r\nThe next morning, Darius enters your office, whistling. \"Commander, that was one hell of a party. It seemed like a different crew at breakfast. They <i>cheered</i> when Dr. Murad and I walked in. I think they'd enjoy another party sometime soon.\"",
+                        "Icon" : ""
+                    },
+                    "Weight" : 100,
+                    "Results" : [
+                        {
+                            "Scope" : "Company",
+                            "Requirements" : null,
+                            "AddedTags" : {
+                                "items" : null,
+                                "tagSetSourceFile" : ""
+                            },
+                            "RemovedTags" : {
+                                "items" : null,
+                                "tagSetSourceFile" : ""
+                            },
+                            "Stats" : [
+                                {
+                                    "typeString" : "System.Int32",
+                                    "name" : "Morale",
+                                    "value" : "7",
+                                    "set" : false,
+                                    "valueConstant" : null
+                                }
+                            ],
+                            "Actions" : null,
+                            "ForceEvents" : null,
+                            "TemporaryResult" : false,
+                            "ResultDuration" : 0
+                        }
+                    ]
+                }
+            ],
+            "Requirements" : {
+                "Scope" : "Company",
+                "RequirementTags" : {
+                    "items" : null,
+                    "tagSetSourceFile" : ""
+                },
+                "ExclusionTags" : {
+                    "items" : null,
+                    "tagSetSourceFile" : ""
+                },
+                "RequirementComparisons" : []
+            }
+        },
+{
+            "Description" : {
+                "Id" : "outcome_2",
+                "Name" : "TEST: Ignore Event.",
+                "Details" : "null",
+                "Icon" : ""
+            },
+            "RequirementList" : [],
+            "ResultSets" : [
+                {
+                    "Description" : {
+                        "Id" : "outcome_2_0",
+                        "Name" : "Nothing",
+                        "Details" : "null",
+                        "Icon" : ""
+                    },
+                    "Weight" : 100,
+                    "Results" : []
+                }
+            ]
+        }
+    ],
+    "PublishState" : "PUBLISHED",
+    "ValidationState" : "UNTESTED",
+    "EventType" : "NORMAL"
+}
