@@ -8,8 +8,6 @@ using UnityEngine;
 using System;
 using BattleTech.Save;
 using BattleTech.Save.SaveGameStructure;
-using BattleTech.Data;
-using BattleTech.StringInterpolation;
 using System.Collections.Generic;
 using Localize;
 using BattleTech.UI.Tooltips;
@@ -27,7 +25,7 @@ namespace DynamicCompanyMorale
         internal static int EventMoraleDurationNumerator = 240;
 
         // BEN: Debug (0: nothing, 1: errors, 2:all)
-        internal static int DebugLevel = 2;
+        internal static int DebugLevel = 1;
 
         public static void Init(string directory, string settingsJSON)
         {
@@ -399,7 +397,7 @@ namespace DynamicCompanyMorale
                 int ProjectedExpenditureMoraleValue = ___simState.ExpenditureMoraleValue[___simState.ExpenditureLevel];
                 Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] ProjectedExpenditureMoraleValue: " + ProjectedExpenditureMoraleValue);
 
-                int ProjectedMorale = ___simState.Morale + ProjectedExpenditureMoraleValue;
+                int ProjectedMorale = ___simState.GetCurrentAbsoluteMorale();
                 Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] ProjectedMorale: " + ProjectedMorale);
 
                 MoraleConstantsDef moraleConstants = ___simState.CombatConstants.MoraleConstants;

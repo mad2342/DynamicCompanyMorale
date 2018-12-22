@@ -5,6 +5,7 @@ namespace DynamicCompanyMorale
 {
     class EventGenerator
     {
+        /*
         [HarmonyPatch(typeof(SimGameState), "OnDayPassed")]
         public static class SimGameState_OnDayPassed_Patch
         {
@@ -24,16 +25,15 @@ namespace DynamicCompanyMorale
                 };
                 __instance.AddSpecialEvent(evt, plt);
 
-                /*
-                float randomRoll = __instance.NetworkRandom.Float(0f, 100f);
-                if (randomRoll > 50f)
-                {
-                    ___companyEventTracker.ActivateRandomEvent();
-                }
-                */
+                //float randomRoll = __instance.NetworkRandom.Float(0f, 100f);
+                //if (randomRoll > 50f)
+                //{
+                //    ___companyEventTracker.ActivateRandomEvent();
+                //}
 
                 Logger.LogLine("----------------------------------------------------------------------------------------------------");
             }
         }
+        */
     }
 }
