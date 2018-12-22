@@ -48,6 +48,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EventGenerator.cs" />
     <Compile Include="Helper.cs" />
     <Compile Include="Holder.cs" />
     <Compile Include="Logger.cs" />
@@ -57,6 +58,7 @@
   <ItemGroup>
     <None Include="mod.json" />
     <None Include="StreamingAssets\data\simGameConstants\SimGameConstants.json" />
+	<None Include="SimGameEventDefs\*.json" />
     <None Include="README.md" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
@@ -67,6 +69,7 @@ xcopy $(ProjectDir)mod.json $(SolutionDir)..\Release\$(TargetName)\ /Y
 xcopy $(ProjectDir)README.md $(SolutionDir)..\Release\$(TargetName)\ /Y
 xcopy $(ProjectDir)README.md $(SolutionDir)..\ /Y
 xcopy $(ProjectDir)StreamingAssets\data\simGameConstants\SimGameConstants.json $(SolutionDir)..\Release\$(TargetName)\StreamingAssets\data\simGameConstants\ /Y
+xcopy $(ProjectDir)SimGameEventDefs\*.json $(SolutionDir)..\Release\$(TargetName)\SimGameEventDefs\ /Y
 	</PostBuildEvent>
   </PropertyGroup>
 </Project>

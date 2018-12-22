@@ -36,6 +36,25 @@ namespace DynamicCompanyMorale
         }
     }
 
+    [HarmonyPatch(typeof(GameInstanceSave), MethodType.Constructor)]
+    [HarmonyPatch(new Type[] { typeof(GameInstance), typeof(SaveReason) })]
+    public static class GameInstanceSave_Constructor_Patch
+    {
+        static void Postfix(GameInstanceSave __instance)
+        {
+            Helper.SaveState(__instance.InstanceGUID, __instance.SaveTime);
+        }
+    }
+
+    [HarmonyPatch(typeof(GameInstance), "Load")]
+    public static class GameInstance_Load_Patch
+    {
+        static void Prefix(GameInstanceSave save)
+        {
+            Helper.LoadState(save.InstanceGUID, save.SaveTime);
+        }
+    }
+
 
     // Fix hardcoded(!) tooltip descriptions
     [HarmonyPatch(typeof(MoraleTooltipData), MethodType.Constructor)]
@@ -248,7 +267,29 @@ namespace DynamicCompanyMorale
                 // BEN: After the original method is called, everything is already in the TemporaryResultTracker & several "updateData"-Calls are made...
                 Logger.LogLine("----------------------------------------------------------------------------------------------------");
 
-            } catch (Exception e)
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e);
+            }
+        }
+        public static void Postfix(SimGameState __instance, ref SimGameEventOption option)
+        {
+            try
+            {
+                // At this point a morale event result was already applied
+                // If companys morale was at a capped extreme before (0,50) the resulting morale is likely wrong
+                // Example: Morale was displayed at 0 beforehand, with BaseMorale at 35, Expenditure at 0, and EventModifier at -40 -> real Morale was in the negative: -5
+                // Event result of +16 is applied, resulting in 16 Morale
+                // But, according to this mods logic, Morale *should* be at: 35 + 0 -40 + 16 = 11
+                // So i set Morale to the correct (calculated) value again in this Postfix
+
+                int CurrentAbsoluteMorale = __instance.GetCurrentAbsoluteMorale();
+                StatCollection statCol = __instance.CompanyStats;
+                SimGameStat stat = new SimGameStat("Morale", CurrentAbsoluteMorale, true);
+                SimGameState.SetSimGameStat(stat, statCol);
+            }
+            catch (Exception e)
             {
                 Logger.LogError(e);
             }
@@ -348,8 +389,10 @@ namespace DynamicCompanyMorale
     {
         public static void Prefix(SGCaptainsQuartersStatusScreen __instance, bool showMoraleChange, SimGameState ___simState)
         {
+            // This is only true on ScreenMode.NextQuarterProjections when ExpenditureLevel is selected
             if (showMoraleChange)
             {
+                // For (dirty) tooltip correction of moraleValueText when showing a projected value
                 Fields.IsNextQuarterProjections = true;
                 Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] Fields.IsNextQuarterProjections: " + Fields.IsNextQuarterProjections.ToString());
 
@@ -380,12 +423,17 @@ namespace DynamicCompanyMorale
         public static void Postfix(SGCaptainsQuartersStatusScreen __instance, bool showMoraleChange, SGMoraleBar ___MoralBar, SimGameState ___simState)
         {
             //Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_POSTFIX]");
+            if (showMoraleChange)
+            {
+                int CurrentMorale = ___simState.Morale;
+                // GetCurrentAbsoluteMorale incorporates ExpenditureMoraleValue
+                int ProjectedMorale = ___simState.GetCurrentAbsoluteMorale();
+                ___MoralBar.ShowMoraleChange(CurrentMorale, ProjectedMorale);
+            }
             //Logger.LogLine("----------------------------------------------------------------------------------------------------");
         }
     }
     
-
-    // @ToDo: Probably obsolete. Comment out and test!
     [HarmonyPatch(typeof(SGCaptainsQuartersStatusScreen), "Dismiss")]
     public static class SGCaptainsQuartersStatusScreen_Dismiss_Patch
     {
@@ -399,7 +447,16 @@ namespace DynamicCompanyMorale
 
             Logger.LogLine("[SGCaptainsQuartersStatusScreen_Dismiss_PREFIX] Check after setting SimGameState.Morale: " + ___simState.Morale.ToString());
 
-            // Refresh dependent widgets
+
+
+            // Workaround vanilla bug and saving just set ExpenseLevel in custom field too
+            StatCollection companyStats = (StatCollection)AccessTools.Field(typeof(SimGameState), "companyStats").GetValue(___simState);
+            Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] SimGameState.companyStats.ExpenseLevel: " + companyStats.GetValue<int>("ExpenseLevel"));
+            Fields.ExpenseLevel = companyStats.GetValue<int>("ExpenseLevel");
+            Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Fields.ExpenseLevel: " + Fields.ExpenseLevel);
+
+
+            // Refresh dependent widgets!
             ___simState.RoomManager.RefreshLeftNavFromShipScreen();
 
             Logger.LogLine("----------------------------------------------------------------------------------------------------");
@@ -436,22 +493,30 @@ namespace DynamicCompanyMorale
     {
         public static void Postfix(SGNavigationWidgetLeft __instance, SimGameState ___simState)
         {
-            // Test
-            ___simState.FixExpenditureLevel();
-
-            Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check SimGameState.Morale: " + ___simState.Morale.ToString());
-
-            Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check SimGameState.ExpenditureLevel: " + ___simState.ExpenditureLevel.ToString());
-            StatCollection companyStats = (StatCollection)AccessTools.Field(typeof(SimGameState), "companyStats").GetValue(___simState);
-            Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check SimGameState.companyStats.ExpenseLevel: " + companyStats.GetValue<int>("ExpenseLevel"));
-            
-
             // Validate that this is called FIRST after Load||Mission||Conversations... otherwise Save/Load has to be re-enabled!
             Fields.IsTemporaryMoraleEventActive = ___simState.IsTemporaryMoraleEventActive();
             Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check Fields.IsTemporaryMoraleEventActive: " + Fields.IsTemporaryMoraleEventActive);
 
             Fields.EventMoraleModifier = ___simState.GetAbsoluteMoraleValueOfAllTemporaryResults();
             Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check Fields.EventMoraleModifier: " + Fields.EventMoraleModifier);
+
+            Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check SimGameState.Morale: " + ___simState.Morale.ToString());
+            Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check CurrentAbsoluteMorale(uncapped): " + ___simState.GetCurrentAbsoluteMorale(false).ToString());
+            Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check SimGameState.ExpenditureLevel: " + ___simState.ExpenditureLevel.ToString());
+            
+            StatCollection companyStats = (StatCollection)AccessTools.Field(typeof(SimGameState), "companyStats").GetValue(___simState);
+            Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check SimGameState.companyStats.ExpenseLevel: " + companyStats.GetValue<int>("ExpenseLevel"));
+            Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check Fields.ExpenseLevel: " + Fields.ExpenseLevel);
+
+
+
+            // Test
+            Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Fields.FixExpenseLevel: " + Fields.FixExpenseLevel);
+            if (Fields.FixExpenseLevel == true)
+            {
+                ___simState.FixExpenditureLevel();
+                Fields.FixExpenseLevel = false;
+            }
 
             Logger.LogLine("----------------------------------------------------------------------------------------------------");
         }
@@ -463,8 +528,13 @@ namespace DynamicCompanyMorale
         public static void Postfix(SGMoraleBar __instance, int value, SimGameState ___simState)
         {
             int EventMoraleModifier = Fields.EventMoraleModifier;
-            TextMeshProUGUI moraleValueText = Traverse.Create(__instance).Field("moraleValueText").GetValue<TextMeshProUGUI>();
-            TextMeshProUGUI moraleTitleText = Traverse.Create(__instance).Field("moraleTitleText").GetValue<TextMeshProUGUI>();
+
+            // Works too, not sure if there's a difference in performance...
+            //TextMeshProUGUI moraleValueText = Traverse.Create(__instance).Field("moraleValueText").GetValue<TextMeshProUGUI>();
+            //TextMeshProUGUI moraleTitleText = Traverse.Create(__instance).Field("moraleTitleText").GetValue<TextMeshProUGUI>();
+
+            TextMeshProUGUI moraleValueText = (TextMeshProUGUI)AccessTools.Field(typeof(SGMoraleBar), "moraleValueText").GetValue(__instance);
+            TextMeshProUGUI moraleTitleText = (TextMeshProUGUI)AccessTools.Field(typeof(SGMoraleBar), "moraleTitleText").GetValue(__instance);
             Color color;
             int moraleLevelFromMoraleValue = ___simState.GetMoraleLevelFromMoraleValue(value);
             string text = "MORALE: " + ___simState.GetDescriptorForMoraleLevel(moraleLevelFromMoraleValue);
@@ -514,55 +584,47 @@ namespace DynamicCompanyMorale
         // Fix potential vanilla bug with randomly setting ExpenseLevel at GameLoad
         public static void FixExpenditureLevel(this SimGameState simGameState)
         {
-            int CurrentMorale = simGameState.Morale;
-            Logger.LogLine("[Custom.FixExpenditureLevel] SimGameState.Morale: " + simGameState.Morale);
-            int CurrentBaseMorale = simGameState.GetCurrentBaseMorale();
-            int AbsoluteMoraleValueOfAllTemporaryResults = simGameState.GetAbsoluteMoraleValueOfAllTemporaryResults();
+            StatCollection companyStats = (StatCollection)AccessTools.Field(typeof(SimGameState), "companyStats").GetValue(simGameState);
+            int ExpectedExpenseLevel = Fields.ExpenseLevel;
+            Logger.LogLine("[Custom.FixExpenditureLevel] ExpectedExpenseLevel: " + ExpectedExpenseLevel.ToString());
 
-            int ExpectedExpenseLevelMoraleValue = CurrentMorale - CurrentBaseMorale - AbsoluteMoraleValueOfAllTemporaryResults;
-            Logger.LogLine("[Custom.FixExpenditureLevel] ExpectedExpenseLevelMoraleValue: " + ExpectedExpenseLevelMoraleValue.ToString());
-
-            foreach (KeyValuePair<EconomyScale, int> keyValuePair in simGameState.ExpenditureMoraleValue)
+            if (companyStats.ContainsStatistic("ExpenseLevel"))
             {
-                // MoraleValue: keyValuePair.Value
-                if (keyValuePair.Value == ExpectedExpenseLevelMoraleValue)
+                int CurrentExpenseLevel = companyStats.GetValue<int>("ExpenseLevel");
+                Logger.LogLine("[Custom.FixExpenditureLevel] CurrentExpenseLevel: " + CurrentExpenseLevel.ToString());
+                if (CurrentExpenseLevel != ExpectedExpenseLevel)
                 {
-                    EconomyScale ExpectedEconomyScale = keyValuePair.Key;
-                    Logger.LogLine("[Custom.FixExpenditureLevel] ExpectedEconomyScale: " + ExpectedEconomyScale.ToString());
-                    Logger.LogLine("[Custom.FixExpenditureLevel] SimGameState.ExpenditureLevel: " + simGameState.ExpenditureLevel);
-
-                    if (ExpectedEconomyScale == simGameState.ExpenditureLevel)
-                    {
-                        Logger.LogLine("[Custom.FixExpenditureLevel] Everything as expected");
-                        return;
-                    }
-                    else
-                    {
-                        Logger.LogLine("[Custom.FixExpenditureLevel] APPLY FIX: Setting ExpenditureLevel to expected value");
-                        simGameState.SetExpenditureLevel(ExpectedEconomyScale, false);
-                        return;
-                    }
+                    Logger.LogLine("[Custom.FixExpenditureLevel] APPLY FIX");
+                    companyStats.ModifyStat("Expenditure Change", 0, "ExpenseLevel", StatCollection.StatOperation.Set, ExpectedExpenseLevel, -1, true);
                 }
             }
-            Logger.LogLine("[Custom.FixExpenditureLevel] Did not find matching EconomyScale for ExpectedExpenseLevelMoraleValue");
+            else
+            {
+                companyStats.AddStatistic("ExpenseLevel", ExpectedExpenseLevel);
+            }
         }
 
-        public static int GetCurrentAbsoluteMorale(this SimGameState simGameState)
+        public static int GetCurrentAbsoluteMorale(this SimGameState simGameState, bool CapAtLimits = true)
         {
             int CurrentBaseMorale = simGameState.GetCurrentBaseMorale();
             int CurrentExpenditureMoraleValue = simGameState.ExpenditureMoraleValue[simGameState.ExpenditureLevel];
             int EventMoraleModifier = Fields.EventMoraleModifier;
 
             int CurrentAbsoluteMorale = CurrentBaseMorale + CurrentExpenditureMoraleValue + EventMoraleModifier;
-            if (CurrentAbsoluteMorale < 0)
-            {
-                CurrentAbsoluteMorale = 0;
-            }
-            else if (CurrentAbsoluteMorale > 50)
-            {
-                CurrentAbsoluteMorale = 50;
-            }
             Logger.LogLine("[Custom.GetCurrentAbsoluteMorale]" + CurrentAbsoluteMorale.ToString());
+
+            if (CapAtLimits)
+            {
+                Logger.LogLine("[Custom.GetCurrentAbsoluteMorale] CapAtLimits: " + CapAtLimits.ToString());
+                if (CurrentAbsoluteMorale < 0)
+                {
+                    CurrentAbsoluteMorale = 0;
+                }
+                else if (CurrentAbsoluteMorale > 50)
+                {
+                    CurrentAbsoluteMorale = 50;
+                }
+            }
             return CurrentAbsoluteMorale;
         }
 

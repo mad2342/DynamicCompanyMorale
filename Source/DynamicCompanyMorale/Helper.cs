@@ -9,11 +9,11 @@ namespace DynamicCompanyMorale
 {
     public class SaveFields
     {
-        public int EventMoraleModifier = 0;
+        public int ExpenseLevel = 0;
 
-        public SaveFields(int eventMoraleModifier)
+        public SaveFields(int expenseLevel)
         {
-            EventMoraleModifier = eventMoraleModifier;
+            ExpenseLevel = expenseLevel;
         }
     }
 
@@ -24,13 +24,12 @@ namespace DynamicCompanyMorale
             try
             {
                 int unixTimestamp = (int)(saveTime.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
-                //string baseDirectory = Directory.GetParent(Directory.GetParent($"{ DynamicCompanyMorale.ModDirectory}").FullName).FullName;
                 string baseDirectory = $"{ DynamicCompanyMorale.ModDirectory}";
                 string filePath = baseDirectory + $"/SaveState/" + instanceGUID + "-" + unixTimestamp + ".json";
                 (new FileInfo(filePath)).Directory.Create();
                 using (StreamWriter writer = new StreamWriter(filePath, true))
                 {
-                    SaveFields fields = new SaveFields(Fields.EventMoraleModifier);
+                    SaveFields fields = new SaveFields(Fields.ExpenseLevel);
                     string json = JsonConvert.SerializeObject(fields);
                     writer.Write(json);
                 }
@@ -46,7 +45,6 @@ namespace DynamicCompanyMorale
             try
             {
                 int unixTimestamp = (int)(saveTime.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
-                //string baseDirectory = Directory.GetParent(Directory.GetParent($"{ DynamicCompanyMorale.ModDirectory}").FullName).FullName;
                 string baseDirectory = $"{ DynamicCompanyMorale.ModDirectory}";
                 string filePath = baseDirectory + $"/SaveState/" + instanceGUID + "-" + unixTimestamp + ".json";
                 if (File.Exists(filePath))
@@ -55,7 +53,8 @@ namespace DynamicCompanyMorale
                     {
                         string json = r.ReadToEnd();
                         SaveFields save = JsonConvert.DeserializeObject<SaveFields>(json);
-                        Fields.EventMoraleModifier = save.EventMoraleModifier;
+                        Fields.ExpenseLevel = save.ExpenseLevel;
+                        Fields.FixExpenseLevel = true;
                     }
                 }
             }
