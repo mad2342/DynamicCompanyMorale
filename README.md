@@ -13,7 +13,7 @@
   * This is reflected in the UI
 
 ## Additional notes
-* A workaround for vanilla bug of randomly setting ExpendeLevel at GameLoad is included
+* A workaround for vanilla bug of randomly setting ExpenseLevel at GameLoad is included
   * Please note that this workaround needs a custom SaveState found in ModDirectory
   * Fix is applied AFTER the first NewQuarterBegin, existing saves cannot be fixed
 * Hardcoded tooltip descriptions for the MoraleBar are also fixed
