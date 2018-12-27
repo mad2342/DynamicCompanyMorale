@@ -4,9 +4,10 @@
    
 	"Version": "1.3.1-001R",
 	"Description": "Company morale system is made more interesting by introducing temporary morale events and meaningful financial decisions at the start of each quarter.",
-	"Author": "Ben",
+	"Author": "Mad",
 
 	"DLL": "DynamicCompanyMorale.dll",
+
 	"Manifest": [
         { "Type": "SimGameEventDef", "Path": "SimGameEventDefs\\" }
     ]
