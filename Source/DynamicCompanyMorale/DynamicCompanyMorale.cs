@@ -24,8 +24,11 @@ namespace DynamicCompanyMorale
         internal static int EventMoraleDurationBase = 15;
         internal static int EventMoraleDurationNumerator = 240;
 
+        // BEN: Enable EventGenerator?
+        internal static bool EnableEventGenerator = false;
+
         // BEN: Debug (0: nothing, 1: errors, 2:all)
-        internal static int DebugLevel = 1;
+        internal static int DebugLevel = 2;
 
         public static void Init(string directory, string settingsJSON)
         {
@@ -357,12 +360,12 @@ namespace DynamicCompanyMorale
         {
             if (data.GetType().Name == "String") {
                 string tooltipText = (string)data;
-                Logger.LogLine("[TooltipManager_SpawnTooltip_PREFIX] tooltipText: " + tooltipText);
                 bool IsMoraleValueTextTooltip = tooltipText.Contains("Resolve/Turn");
                 bool IsNextQuarterProjections = Fields.IsNextQuarterProjections;
 
                 if (IsMoraleValueTextTooltip && IsNextQuarterProjections)
                 {
+                    Logger.LogLine("[TooltipManager_SpawnTooltip_PREFIX] tooltipText: " + tooltipText);
                     data = "You will generate <color=#F79B26>" + Fields.ProjectedResolvePerTurn + " Resolve/Turn</color> in combat";
                     Logger.LogLine("[TooltipManager_SpawnTooltip_PREFIX] Modified data: " + data);
                 }
