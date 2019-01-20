@@ -11,18 +11,19 @@ using BattleTech.Save.SaveGameStructure;
 using System.Collections.Generic;
 using Localize;
 using BattleTech.UI.Tooltips;
+using Newtonsoft.Json;
 
 namespace DynamicCompanyMorale
 {
     public static class DynamicCompanyMorale
     {
         internal static string ModDirectory;
+        internal static Settings Settings;
         internal static SimGameEventOption LastModifiedOption;
-        internal static int EventMoraleMultiplier = 4;
-        
-        // BEN: Temporary morale events
-        internal static int EventMoraleDurationBase = 15;
-        internal static int EventMoraleDurationNumerator = 240;
+
+        //internal static int EventMoraleMultiplier = 4;
+        //internal static int EventMoraleDurationBase = 15;
+        //internal static int EventMoraleDurationNumerator = 240;
 
         // BEN: Enable EventGenerator?
         internal static bool EnableEventGenerator = false;
@@ -30,10 +31,19 @@ namespace DynamicCompanyMorale
         // BEN: Debug (0: nothing, 1: errors, 2:all)
         internal static int DebugLevel = 1;
 
-        public static void Init(string directory, string settingsJSON)
+        public static void Init(string directory, string settings)
         {
-            ModDirectory = directory;
             HarmonyInstance.Create("de.ben.DynamicCompanyMorale").PatchAll(Assembly.GetExecutingAssembly());
+
+            ModDirectory = directory;
+            try
+            {
+                Settings = JsonConvert.DeserializeObject<Settings>(settings);
+            }
+            catch (Exception)
+            {
+                Settings = new Settings();
+            }
         }
     }
 
@@ -231,13 +241,13 @@ namespace DynamicCompanyMorale
                                     extractedMoraleResult.Requirements = new RequirementDef(null);
                                     extractedMoraleResult.AddedTags = new HBS.Collections.TagSet();
                                     extractedMoraleResult.RemovedTags = new HBS.Collections.TagSet();
-                                    int adjustedMoraleValue = (int.Parse(eventResult.Stats[i].value) * DynamicCompanyMorale.EventMoraleMultiplier);
+                                    int adjustedMoraleValue = (int.Parse(eventResult.Stats[i].value) * DynamicCompanyMorale.Settings.EventMoraleMultiplier);
                                     SimGameStat Stat = new SimGameStat("Morale", adjustedMoraleValue, false);
                                     extractedMoraleResult.Stats = new SimGameStat[] { Stat };
                                     extractedMoraleResult.Actions = new SimGameResultAction[] { };
                                     extractedMoraleResult.ForceEvents = new SimGameForcedEvent[] { };
                                     extractedMoraleResult.TemporaryResult = true;
-                                    extractedMoraleResult.ResultDuration = DynamicCompanyMorale.EventMoraleDurationBase + Math.Abs(DynamicCompanyMorale.EventMoraleDurationNumerator / adjustedMoraleValue);
+                                    extractedMoraleResult.ResultDuration = DynamicCompanyMorale.Settings.EventMoraleDurationBase + Math.Abs(DynamicCompanyMorale.Settings.EventMoraleDurationNumerator / adjustedMoraleValue);
                                     Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] extractedMoraleResultValue: " + extractedMoraleResult.Stats[0].value);
 
                                     // Invalidate original morale stat
