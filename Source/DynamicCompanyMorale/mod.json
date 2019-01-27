@@ -2,7 +2,7 @@
 	"Name": "DynamicCompanyMorale",
 	"Enabled": true,
    
-	"Version": "1.3.1-002R",
+	"Version": "1.3.2-001R",
 	"Description": "Company morale system is made more interesting by introducing temporary morale events and meaningful financial decisions at the start of each quarter.",
 	"Author": "Mad",
 
