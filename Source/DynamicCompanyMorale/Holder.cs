@@ -7,7 +7,7 @@
         public static int ProjectedResolvePerTurn = 0;
         public static bool IsNextQuarterProjections = false;
 
-        public static int ExpenseLevel = 0;
-        public static bool FixExpenseLevel = false;
+        public static int SavedExpenseLevel = 0;
+        public static bool ShouldFixExpenseLevel = false;
     }
 }

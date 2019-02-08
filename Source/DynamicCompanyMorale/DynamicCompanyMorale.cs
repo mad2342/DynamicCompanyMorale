@@ -12,6 +12,8 @@ using System.Collections.Generic;
 using Localize;
 using BattleTech.UI.Tooltips;
 using Newtonsoft.Json;
+using System.IO;
+using System.Linq;
 
 namespace DynamicCompanyMorale
 {
@@ -29,13 +31,15 @@ namespace DynamicCompanyMorale
         internal static bool EnableEventGenerator = false;
 
         // BEN: Debug (0: nothing, 1: errors, 2:all)
-        internal static int DebugLevel = 1;
+        internal static int DebugLevel = 2;
 
         public static void Init(string directory, string settings)
         {
             HarmonyInstance.Create("de.ben.DynamicCompanyMorale").PatchAll(Assembly.GetExecutingAssembly());
 
             ModDirectory = directory;
+            File.CreateText($"{DynamicCompanyMorale.ModDirectory}/DynamicCompanyMorale.log");
+
             try
             {
                 Settings = JsonConvert.DeserializeObject<Settings>(settings);
@@ -206,7 +210,133 @@ namespace DynamicCompanyMorale
         }
     }
 
+    // Flashpoint additions
+    [HarmonyPatch(typeof(SGFlashpointEndScreen), "InitializeData")]
+    public static class SGFlashpointEndScreen_InitializeData_Patch
+    {
+        public static void Prefix(SGFlashpointEndScreen __instance, ref SimGameEventResult[] eventResults)
+        {
+            try
+            {
+                Logger.LogLine("[SGFlashpointEndScreen_InitializeData_PREFIX] Check eventResults");
 
+                // Prepare result for extraction of morale stat
+                SimGameEventResult extractedMoraleResult = new SimGameEventResult();
+                bool foundMoraleResult = false;
+
+                foreach (SimGameEventResult eventResult in eventResults)
+                {
+                    if (eventResult.Stats != null)
+                    {
+                        for (int i = 0; i < eventResult.Stats.Length; i++)
+                        {
+                            if (eventResult.Stats[i].name == "Morale")
+                            {
+                                Logger.LogLine("[SGFlashpointEndScreen_InitializeData_PREFIX] eventResultMoraleValue (unaltered): " + eventResult.Stats[i].value);
+
+                                // Mark eventResults[] as containing Morale Stat
+                                foundMoraleResult = true;
+                                // Create new temporary result with ONLY Morale Stat in it, value already modified with multiplier
+                                extractedMoraleResult.Scope = EventScope.Company;
+                                extractedMoraleResult.Requirements = new RequirementDef(null);
+                                extractedMoraleResult.AddedTags = new HBS.Collections.TagSet();
+                                extractedMoraleResult.RemovedTags = new HBS.Collections.TagSet();
+                                int adjustedMoraleValue = (int.Parse(eventResult.Stats[i].value) * DynamicCompanyMorale.Settings.EventMoraleMultiplier);
+                                SimGameStat Stat = new SimGameStat("Morale", adjustedMoraleValue, false);
+                                extractedMoraleResult.Stats = new SimGameStat[] { Stat };
+                                extractedMoraleResult.Actions = new SimGameResultAction[] { };
+                                extractedMoraleResult.ForceEvents = new SimGameForcedEvent[] { };
+                                extractedMoraleResult.TemporaryResult = true;
+                                extractedMoraleResult.ResultDuration = DynamicCompanyMorale.Settings.EventMoraleDurationBase + Math.Abs(DynamicCompanyMorale.Settings.EventMoraleDurationNumerator / adjustedMoraleValue);
+                                Logger.LogLine("[SGFlashpointEndScreen_InitializeData_PREFIX] extractedMoraleResultValue: " + extractedMoraleResult.Stats[0].value);
+
+                                // Invalidate original morale stat
+                                //eventResult.Stats[i].name = ""; // Breaks code
+                                //eventResult.Stats[i].value = "0"; // This is enough
+                                eventResult.Stats[i].typeString = ""; // Better
+                                Logger.LogLine("[SGFlashpointEndScreen_InitializeData_PREFIX] eventResultIsValid: " + !String.IsNullOrEmpty(eventResult.Stats[i].typeString));
+                            }
+                        }
+                    }
+                }
+
+                if (foundMoraleResult)
+                {
+                    Logger.LogLine("[SGFlashpointEndScreen_InitializeData_PREFIX] eventResults.Length (before): " + eventResults.Length.ToString());
+                    Logger.LogLine("[SGFlashpointEndScreen_InitializeData_PREFIX] Adding extractedMoraleResult to eventResults now");
+
+                    Array.Resize<SimGameEventResult>(ref eventResults, eventResults.Length + 1);
+                    eventResults[eventResults.Length - 1] = extractedMoraleResult;
+
+                    Logger.LogLine("[SGFlashpointEndScreen_InitializeData_PREFIX] eventResults.Length (after): " + eventResults.Length.ToString());
+
+                    // Set early for UI
+                    Fields.IsTemporaryMoraleEventActive = true;
+                }
+                Logger.LogLine("----------------------------------------------------------------------------------------------------");
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e);
+            }
+        }
+        public static void Postfix(SGFlashpointEndScreen __instance, SimGameState sim)
+        {
+            try
+            {
+                // At this point a morale event result was already applied
+                // If companys morale was at a capped extreme before (0,50) the resulting morale is likely wrong
+                // Example: Morale was displayed at 0 beforehand, with BaseMorale at 35, Expenditure at 0, and EventModifier at -40 -> real Morale was in the negative: -5
+                // Event result of +16 is applied, resulting in 16 Morale
+                // But, according to this mods logic, Morale *should* be at: 35 + 0 -40 + 16 = 11
+                // So i set Morale to the correct (calculated) value again in this Postfix
+
+                int CurrentAbsoluteMorale = sim.GetCurrentAbsoluteMorale();
+                StatCollection statCol = sim.CompanyStats;
+                SimGameStat stat = new SimGameStat("Morale", CurrentAbsoluteMorale, true);
+                SimGameState.SetSimGameStat(stat, statCol);
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e);
+            }
+        }
+    }
+
+    // This additional patch is needed because HBS calls SimGameState.BuildSimGameResults with a tenseOverride set :-\
+    // Without patch the morale result is displayed as default without the TemporaryResult fluff
+    // This patched function is used to remove/extract result entries which contain funds (as they are displayed more prominently with FPs)
+    // So i'm doing my equally dirty work in there too
+    // PROBABLY also possible with a POSTFIX of SimGameState.BuildSimGameResults (forcing all Stat.Morale results to temporary there?) -> TEST
+    [HarmonyPatch(typeof(SGFlashpointEndScreen), "PruneResultText")]
+    public static class SGFlashpointEndScreen_PruneResultText_Patch
+    {
+        public static void Prefix(SGFlashpointEndScreen __instance, ref List<ResultDescriptionEntry> displayList)
+        {
+            try
+            {
+                for (int i = displayList.Count - 1; i >= 0; i--)
+                {
+                    Logger.LogLine("[SGFlashpointEndScreen_PruneResultText_PREFIX] displayList[i].Text: " + displayList[i].Text.ToString());
+                    string text = displayList[i].Text.ToString();
+                    string suffix = "";
+                    if (text.Contains("Morale"))
+                    {
+                        int moraleValue = int.Parse(new String(text.Where(Char.IsDigit).ToArray()));
+                        int duration = DynamicCompanyMorale.Settings.EventMoraleDurationBase + Math.Abs(DynamicCompanyMorale.Settings.EventMoraleDurationNumerator / moraleValue);
+                        suffix += " for" + duration + " days";
+                        displayList[i].Text.Append(suffix, new object[0]);
+                    }
+                    Logger.LogLine("[SGFlashpointEndScreen_PruneResultText_PREFIX] displayList[i].Text: " + displayList[i].Text.ToString());
+                    Logger.LogLine("----------------------------------------------------------------------------------------------------");
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e);
+            }
+        }
+    }
 
     [HarmonyPatch(typeof(SimGameState), "OnEventOptionSelected")]
     public static class SimGameState_OnEventOptionSelected_Patch
@@ -463,8 +593,8 @@ namespace DynamicCompanyMorale
             // Workaround vanilla bug and saving just set ExpenseLevel in custom field too
             StatCollection companyStats = (StatCollection)AccessTools.Field(typeof(SimGameState), "companyStats").GetValue(___simState);
             Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] SimGameState.companyStats.ExpenseLevel: " + companyStats.GetValue<int>("ExpenseLevel"));
-            Fields.ExpenseLevel = companyStats.GetValue<int>("ExpenseLevel");
-            Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Fields.ExpenseLevel: " + Fields.ExpenseLevel);
+            Fields.SavedExpenseLevel = companyStats.GetValue<int>("ExpenseLevel");
+            Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Fields.SavedExpenseLevel: " + Fields.SavedExpenseLevel);
 
 
             // Refresh dependent widgets!
@@ -517,17 +647,23 @@ namespace DynamicCompanyMorale
             
             StatCollection companyStats = (StatCollection)AccessTools.Field(typeof(SimGameState), "companyStats").GetValue(___simState);
             Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check SimGameState.companyStats.ExpenseLevel: " + companyStats.GetValue<int>("ExpenseLevel"));
-            Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check Fields.ExpenseLevel: " + Fields.ExpenseLevel);
+            Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check Fields.SavedExpenseLevel: " + Fields.SavedExpenseLevel);
 
 
 
             // Test
-            Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Fields.FixExpenseLevel: " + Fields.FixExpenseLevel);
-            if (Fields.FixExpenseLevel == true)
+            Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Fields.ShouldFixExpenseLevel: " + Fields.ShouldFixExpenseLevel);
+            if (Fields.ShouldFixExpenseLevel == true)
             {
                 ___simState.FixExpenditureLevel();
-                Fields.FixExpenseLevel = false;
+                Fields.ShouldFixExpenseLevel = false;
             }
+
+            // Set correct morale NOW
+            Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Calling SimGameState.SetMorale NOW");
+            int CurrentAbsoluteMorale = ___simState.GetCurrentAbsoluteMorale();
+            ___simState.SetMorale(CurrentAbsoluteMorale);
+            Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check SimGameState.Morale: " + ___simState.Morale.ToString());
 
             Logger.LogLine("----------------------------------------------------------------------------------------------------");
         }
@@ -596,7 +732,7 @@ namespace DynamicCompanyMorale
         public static void FixExpenditureLevel(this SimGameState simGameState)
         {
             StatCollection companyStats = (StatCollection)AccessTools.Field(typeof(SimGameState), "companyStats").GetValue(simGameState);
-            int ExpectedExpenseLevel = Fields.ExpenseLevel;
+            int ExpectedExpenseLevel = Fields.SavedExpenseLevel;
             Logger.LogLine("[Custom.FixExpenditureLevel] ExpectedExpenseLevel: " + ExpectedExpenseLevel.ToString());
 
             if (companyStats.ContainsStatistic("ExpenseLevel"))
@@ -612,6 +748,20 @@ namespace DynamicCompanyMorale
             else
             {
                 companyStats.AddStatistic("ExpenseLevel", ExpectedExpenseLevel);
+            }
+        }
+
+        public static void SetMorale(this SimGameState simGameState, int val)
+        {
+            StatCollection companyStats = (StatCollection)AccessTools.Field(typeof(SimGameState), "companyStats").GetValue(simGameState);
+
+            if (companyStats.ContainsStatistic("Morale"))
+            {
+                companyStats.ModifyStat<int>("SimGameState", 0, "Morale", StatCollection.StatOperation.Set, val, -1, true);
+            }
+            else
+            {
+                companyStats.AddStatistic<int>("Morale", val, new Statistic.Validator<int>(simGameState.MinimumZeroMaximumFiftyValidator<int>));
             }
         }
 

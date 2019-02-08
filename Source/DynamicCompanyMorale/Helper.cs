@@ -29,7 +29,7 @@ namespace DynamicCompanyMorale
                 (new FileInfo(filePath)).Directory.Create();
                 using (StreamWriter writer = new StreamWriter(filePath, true))
                 {
-                    SaveFields fields = new SaveFields(Fields.ExpenseLevel);
+                    SaveFields fields = new SaveFields(Fields.SavedExpenseLevel);
                     string json = JsonConvert.SerializeObject(fields);
                     writer.Write(json);
                 }
@@ -53,8 +53,8 @@ namespace DynamicCompanyMorale
                     {
                         string json = r.ReadToEnd();
                         SaveFields save = JsonConvert.DeserializeObject<SaveFields>(json);
-                        Fields.ExpenseLevel = save.ExpenseLevel;
-                        Fields.FixExpenseLevel = true;
+                        Fields.SavedExpenseLevel = save.ExpenseLevel;
+                        Fields.ShouldFixExpenseLevel = true;
                     }
                 }
             }
