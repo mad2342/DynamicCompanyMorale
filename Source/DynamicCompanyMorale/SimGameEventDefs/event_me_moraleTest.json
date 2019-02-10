@@ -10,7 +10,9 @@
     "Requirements" : {
         "Scope" : "MechWarrior",
         "RequirementTags" : {
-            "items" : null,
+            "items" : [
+                "dynamicCompanyMorale_requirement_IMPOSSIBLE"
+            ],
             "tagSetSourceFile" : "Tags/PilotTags"
         },
         "ExclusionTags" : {

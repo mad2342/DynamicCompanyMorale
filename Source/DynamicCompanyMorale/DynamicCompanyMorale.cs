@@ -14,6 +14,7 @@ using BattleTech.UI.Tooltips;
 using Newtonsoft.Json;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace DynamicCompanyMorale
 {
@@ -305,31 +306,33 @@ namespace DynamicCompanyMorale
 
     // This additional patch is needed because HBS calls SimGameState.BuildSimGameResults with a tenseOverride set :-\
     // Without patch the morale result is displayed as default without the TemporaryResult fluff
-    // This patched function is used to remove/extract result entries which contain funds (as they are displayed more prominently with FPs)
-    // So i'm doing my equally dirty work in there too
     // PROBABLY also possible with a POSTFIX of SimGameState.BuildSimGameResults (forcing all Stat.Morale results to temporary there?) -> TEST
-    [HarmonyPatch(typeof(SGFlashpointEndScreen), "PruneResultText")]
-    public static class SGFlashpointEndScreen_PruneResultText_Patch
+    [HarmonyPatch(typeof(AAR_OtherResultsWidget), "DisplayData")]
+    public static class AAR_OtherResultsWidget_DisplayData_Patch
     {
-        public static void Prefix(SGFlashpointEndScreen __instance, ref List<ResultDescriptionEntry> displayList)
+        public static void Prefix(AAR_OtherResultsWidget __instance, ref List<ResultDescriptionEntry> entries, TextMeshProUGUI ___resultsText)
         {
             try
             {
-                for (int i = displayList.Count - 1; i >= 0; i--)
+                ___resultsText.fontSize = 18; // Default is 20
+
+                for (int i = entries.Count - 1; i >= 0; i--)
                 {
-                    Logger.LogLine("[SGFlashpointEndScreen_PruneResultText_PREFIX] displayList[i].Text: " + displayList[i].Text.ToString());
-                    string text = displayList[i].Text.ToString();
-                    string suffix = "";
+                    Logger.LogLine("[AAR_OtherResultsWidget_DisplayData_PREFIX] entries[i].Text: " + entries[i].Text.ToString());
+                    string text = entries[i].Text.ToString();
+
                     if (text.Contains("Morale"))
                     {
+                        string entry = Regex.Replace(text, @"\r\n?|\n", ""); // Kill linebreaks
+                        string suffix = "";
                         int moraleValue = int.Parse(new String(text.Where(Char.IsDigit).ToArray()));
                         int duration = DynamicCompanyMorale.Settings.EventMoraleDurationBase + Math.Abs(DynamicCompanyMorale.Settings.EventMoraleDurationNumerator / moraleValue);
-                        suffix += " for" + duration + " days";
-                        displayList[i].Text.Append(suffix, new object[0]);
+                        suffix += " for " + duration + " days";
+                        entries[i].Text = new Text(entry + suffix, new object[0]);
                     }
-                    Logger.LogLine("[SGFlashpointEndScreen_PruneResultText_PREFIX] displayList[i].Text: " + displayList[i].Text.ToString());
-                    Logger.LogLine("----------------------------------------------------------------------------------------------------");
+                    Logger.LogLine("[AAR_OtherResultsWidget_DisplayData_PREFIX] entries[i].Text: " + entries[i].Text.ToString()); 
                 }
+                Logger.LogLine("----------------------------------------------------------------------------------------------------");
             }
             catch (Exception e)
             {

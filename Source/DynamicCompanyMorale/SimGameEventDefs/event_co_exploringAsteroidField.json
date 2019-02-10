@@ -10,7 +10,9 @@
     "Requirements" : {
         "Scope" : "Company",
         "RequirementTags" : {
-            "items" : null,
+            "items" : [
+                "dynamicCompanyMorale_requirement_IMPOSSIBLE"
+            ],
             "tagSetSourceFile" : "Tags/CompanyTags"
         },
         "ExclusionTags" : {
