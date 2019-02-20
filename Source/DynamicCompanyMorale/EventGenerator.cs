@@ -40,8 +40,8 @@ namespace DynamicCompanyMorale
 
                 //ActivateTestEvents();
 
-                float randomRoll = __instance.NetworkRandom.Float(0f, 100f);
-                if (randomRoll > 50f)
+                float randomRoll = __instance.NetworkRandom.Float(0f, 1f);
+                if (randomRoll > 0.8f)
                 {
                     ___companyEventTracker.ActivateRandomEvent();
                 }
