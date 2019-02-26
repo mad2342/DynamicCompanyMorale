@@ -49,7 +49,9 @@
   <ItemGroup>
     <None Include="mod.json" />
     <None Include="StreamingAssets\data\simGameConstants\SimGameConstants.json" />
-    <None Include="SimGameEventDefs\*.json" />
+    <None Include="SimGameEventDefs\event_dcm_exploringAsteroidField0.json" />
+    <None Include="SimGameEventDefs\event_dcm_exploringAsteroidField1.json" />
+    <None Include="SimGameEventDefs\event_dcm_test.json" />
     <None Include="README.md" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

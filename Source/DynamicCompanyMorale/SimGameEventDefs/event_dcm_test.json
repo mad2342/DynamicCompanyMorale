@@ -1,8 +1,8 @@
 {
     "Description" : {
-        "Id" : "event_mw_moraleTest",
-        "Name" : "Festival of Lights",
-        "Details" : "As the morning briefing draws to a close, Darius raises a final point of discussion. \"The crew's been wound a little tight lately, and the lounge is empty too often. [[TGT_MW,{TGT_MW.Callsign}]] brought it to my attention, along with a suggestion that we 'do something' about it. I'm thinking that some kind of celebration is in order\u2026 anyone have any ideas?\"\r\n\r\nSumire raises her hand. \"My family used to observe the Festival of Lights around this time of year. We'd light candles for the dead, then throw a wild party in their honor.\"\r\n\r\nYang snorts. \"C'mon, Sumire. That sounds a little highbrow for people who go skinny dipping in coolant tanks. How 'bout we give {TGT_MW.Callsign} permission to throw a keg party instead?\"",
+        "Id" : "event_dcm_test",
+        "Name" : "Dynamic Company Morale TEST EVENT",
+        "Details" : "You should only see this if DynamicCompanyMorale.EnableEventGenerator is true as this event has a non-existent RequirementTag!",
         "Icon" : "uixTxrSpot_Lounge.png"
     },
     "Scope" : "MechWarrior",
@@ -11,7 +11,7 @@
         "Scope" : "MechWarrior",
         "RequirementTags" : {
             "items" : [
-                "dynamicCompanyMorale_requirement_IMPOSSIBLE"
+                "dcm_requirement_IMPOSSIBLE"
             ],
             "tagSetSourceFile" : "Tags/PilotTags"
         },
@@ -19,61 +19,16 @@
             "items" : null,
             "tagSetSourceFile" : ""
         },
-        "RequirementComparisons" : [
-            {
-                "obj" : "Injuries",
-                "op" : "Equal",
-                "val" : 0,
-                "valueConstant" : "0"
-            }
-        ]
+		"RequirementComparisons" : []
     },
-    "AdditionalRequirements" : [
-        {
-            "Scope" : "Company",
-            "RequirementTags" : {
-                "items" : [
-                    "argo_rec_lounge1"
-                ],
-                "tagSetSourceFile" : "Tags/CompanyTags"
-            },
-			"ExclusionTags" : {
-				"items" : null,
-				"tagSetSourceFile" : ""
-			},
-            "RequirementComparisons" : []
-        }
-    ],
-    "AdditionalObjects" : [
-        {
-            "Scope" : "SecondaryMechWarrior",
-            "Requirements" : {
-                "Scope" : "SecondaryMechWarrior",
-                "RequirementTags" : {
-                    "items" : null,
-                    "tagSetSourceFile" : "Tags/PilotTags"
-                },
-                "ExclusionTags" : {
-                    "items" : null,
-                    "tagSetSourceFile" : ""
-                },
-                "RequirementComparisons" : [
-                    {
-                        "obj" : "Injuries",
-                        "op" : "Equal",
-                        "val" : 0,
-                        "valueConstant" : "0"
-                    }
-                ]
-            }
-        }
-    ],
+    "AdditionalRequirements" : [],
+    "AdditionalObjects" : [],
     "Options" : [
         {
             "Description" : {
                 "Id" : "outcome_0",
-                "Name" : "Ignore {TGT_MW.Callsign}'s request.",
-                "Details" : "non-participation",
+                "Name" : "Morale - 7",
+                "Details" : "",
                 "Icon" : ""
             },
             "RequirementList" : [],
@@ -81,8 +36,8 @@
                 {
                     "Description" : {
                         "Id" : "outcome_0_0",
-                        "Name" : "stingy commander",
-                        "Details" : "\"The crew knows where the lounge is,\" you observe neutrally. \"If they need entertainment, I'm sure they'll find a way.\"\r\n\r\nThe staff exchanges glances, and then the meeting breaks up.",
+                        "Name" : "Negative",
+                        "Details" : "Lose 7 Morale",
                         "Icon" : ""
                     },
                     "Weight" : 100,
@@ -131,8 +86,8 @@
         {
             "Description" : {
                 "Id" : "outcome_1",
-                "Name" : "Celebrate the Festival of Lights.",
-                "Details" : "[\u00A25,000]",
+                "Name" : "Morale + 7",
+                "Details" : "",
                 "Icon" : ""
             },
             "RequirementList" : [
@@ -153,8 +108,8 @@
                 {
                     "Description" : {
                         "Id" : "outcome_1_0",
-                        "Name" : "Now that was an event",
-                        "Details" : "The lounge looks like a different place in the light of a thousand burning candles. As Sumire pours shot after shot for the attendees, the stories being shared go from sad to bawdy to riotously funny. Then the music takes an upturn, and things really start heating up.\r\n\r\nThe next morning, Darius enters your office, whistling. \"Commander, that was one hell of a party. It seemed like a different crew at breakfast. They <i>cheered</i> when Dr. Murad and I walked in. I think they'd enjoy another party sometime soon.\"",
+                        "Name" : "Positive",
+                        "Details" : "Gain 7 Morale",
                         "Icon" : ""
                     },
                     "Weight" : 100,
@@ -200,11 +155,11 @@
                 "RequirementComparisons" : []
             }
         },
-{
+		{
             "Description" : {
                 "Id" : "outcome_2",
-                "Name" : "TEST: Ignore Event.",
-                "Details" : "null",
+                "Name" : "Skip",
+                "Details" : "",
                 "Icon" : ""
             },
             "RequirementList" : [],
@@ -212,8 +167,8 @@
                 {
                     "Description" : {
                         "Id" : "outcome_2_0",
-                        "Name" : "Nothing",
-                        "Details" : "null",
+                        "Name" : "No change",
+                        "Details" : "Nothing",
                         "Icon" : ""
                     },
                     "Weight" : 100,

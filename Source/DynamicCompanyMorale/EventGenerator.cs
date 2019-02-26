@@ -5,7 +5,10 @@ namespace DynamicCompanyMorale
 {
     class EventGenerator
     {
-        internal static int EventAppliedCount = 0;
+        internal static int DaysUneventful = 3;
+        internal static int DaysUneventfulCounter = 0;
+        internal static int SpecialEventCounter = 0;
+        internal static int SpecialEventMax = 10;
 
         [HarmonyPatch(typeof(SimGameState), "OnDayPassed")]
         public static class SimGameState_OnDayPassed_Patch
@@ -17,36 +20,58 @@ namespace DynamicCompanyMorale
 
             public static void Postfix(SimGameState __instance, SimGameEventTracker ___companyEventTracker)
             {
-                Logger.LogLine("[SimGameState_OnDayPassed_POSTFIX] ForceEvent");
 
-                void ActivateTestEvents()
+                void ActivateAnyEvent(float eventChance)
                 {
-                    Pilot plt = null;
-                    SimGameForcedEvent evt = new SimGameForcedEvent
+                    float randomRoll = __instance.NetworkRandom.Float(0f, 1f);
+                    if (randomRoll < eventChance)
                     {
-                        Scope = EventScope.Company,
-                        EventID = "event_mw_moraleTest",
-                        MinDaysWait = 5,
-                        MaxDaysWait = 10,
-                        Probability = 100,
-                        RetainPilot = false
-                    };
-                    if (EventAppliedCount < 3)
-                    {
-                        __instance.AddSpecialEvent(evt, plt);
-                        EventAppliedCount++;
+                        Logger.LogLine("----------------------------------------------------------------------------------------------------");
+                        Logger.LogLine("[SimGameState_OnDayPassed_POSTFIX] ActivateRandomEvent");
+                        Logger.LogLine("----------------------------------------------------------------------------------------------------");
+                        ___companyEventTracker.ActivateRandomEvent();
                     }
                 }
 
-                //ActivateTestEvents();
-
-                float randomRoll = __instance.NetworkRandom.Float(0f, 1f);
-                if (randomRoll > 0.8f)
+                void ActivateSpecialEvent(string eventId, float eventChance)
                 {
-                    ___companyEventTracker.ActivateRandomEvent();
+                    if (SpecialEventCounter >= SpecialEventMax)
+                    {
+                        Logger.LogLine("[SimGameState_OnDayPassed_POSTFIX] SpecialEventMax(" + SpecialEventMax + ") reached. Exiting.");
+                        return;
+                    }
+                    SpecialEventCounter++;
+
+                    float randomRoll = __instance.NetworkRandom.Float(0f, 1f);
+                    if (randomRoll < eventChance)
+                    {
+                        Pilot plt = null;
+                        SimGameForcedEvent evt = new SimGameForcedEvent
+                        {
+                            Scope = EventScope.Company,
+                            EventID = eventId,
+                            MinDaysWait = 0,
+                            MaxDaysWait = 0,
+                            Probability = 100,
+                            RetainPilot = false
+                        };
+                        Logger.LogLine("----------------------------------------------------------------------------------------------------");
+                        Logger.LogLine("[SimGameState_OnDayPassed_POSTFIX] AddSpecialEvent");
+                        Logger.LogLine("----------------------------------------------------------------------------------------------------");
+                        __instance.AddSpecialEvent(evt, plt);
+                        
+                    }
                 }
 
-                Logger.LogLine("----------------------------------------------------------------------------------------------------");
+                
+                bool activateEvent = DaysUneventfulCounter++ == DaysUneventful;
+
+                if (activateEvent)
+                {
+                    DaysUneventfulCounter = 0;
+                    ActivateSpecialEvent("event_dcm_test", 1f);
+                    //ActivateAnyEvent(0.2f);
+                }
             }
         }
     }
