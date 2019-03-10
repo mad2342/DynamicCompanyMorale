@@ -30,7 +30,7 @@ namespace DynamicCompanyMorale
         //internal static int EventMoraleDurationNumerator = 240;
 
         // BEN: Enable EventGenerator?
-        internal static bool EnableEventGenerator = true;
+        internal static bool EnableEventGenerator = false;
 
         // BEN: Debug (0: nothing, 1: errors, 2:all)
         internal static int DebugLevel = 2;
