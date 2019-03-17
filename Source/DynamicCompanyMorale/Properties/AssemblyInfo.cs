@@ -6,4 +6,4 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyProduct("DynamicCompanyMorale")]
 [assembly: ComVisible(false)]
 [assembly: Guid("9DD660E2-5851-46D5-AFE3-EA54782910EC")]
-[assembly: AssemblyVersion("1.4.0.*")]
+[assembly: AssemblyVersion("1.5.0.*")]
