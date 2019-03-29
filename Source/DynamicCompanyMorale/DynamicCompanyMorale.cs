@@ -842,7 +842,8 @@ namespace DynamicCompanyMorale
                     color = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.white;
                     Logger.LogLine("[SGMoraleBar_RefreshTextForMoraleValue_POSTFIX] White");
                 }
-                moraleValueText.color = color;
+                //moraleValueText.color = color;
+                moraleValueText.faceColor = color;
                 moraleTitleText.SetText("{0}", new object[]
                 {
                 text
