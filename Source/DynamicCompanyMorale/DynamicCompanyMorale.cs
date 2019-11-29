@@ -15,6 +15,7 @@ using Newtonsoft.Json;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using BattleTech.UI.TMProWrapper;
 
 namespace DynamicCompanyMorale
 {
@@ -720,7 +721,7 @@ namespace DynamicCompanyMorale
     [HarmonyPatch(typeof(SGFinancialForecastWidget), "RefreshData")]
     public static class SSGFinancialForecastWidget_RefreshData_Patch
     {
-        public static void Postfix(SGFinancialForecastWidget __instance, TextMeshProUGUI ___CurrSpendingStyleText, SimGameState ___simState)
+        public static void Postfix(SGFinancialForecastWidget __instance, LocalizableText ___CurrSpendingStyleText, SimGameState ___simState)
         {
             try
             {
@@ -809,8 +810,8 @@ namespace DynamicCompanyMorale
                 //TextMeshProUGUI moraleValueText = Traverse.Create(__instance).Field("moraleValueText").GetValue<TextMeshProUGUI>();
                 //TextMeshProUGUI moraleTitleText = Traverse.Create(__instance).Field("moraleTitleText").GetValue<TextMeshProUGUI>();
 
-                TextMeshProUGUI moraleValueText = (TextMeshProUGUI)AccessTools.Field(typeof(SGMoraleBar), "moraleValueText").GetValue(__instance);
-                TextMeshProUGUI moraleTitleText = (TextMeshProUGUI)AccessTools.Field(typeof(SGMoraleBar), "moraleTitleText").GetValue(__instance);
+                LocalizableText moraleValueText = (LocalizableText)AccessTools.Field(typeof(SGMoraleBar), "moraleValueText").GetValue(__instance);
+                LocalizableText moraleTitleText = (LocalizableText)AccessTools.Field(typeof(SGMoraleBar), "moraleTitleText").GetValue(__instance);
                 Color color;
                 int moraleLevelFromMoraleValue = ___simState.GetMoraleLevelFromMoraleValue(value);
                 string text = "MORALE: " + ___simState.GetDescriptorForMoraleLevel(moraleLevelFromMoraleValue);
