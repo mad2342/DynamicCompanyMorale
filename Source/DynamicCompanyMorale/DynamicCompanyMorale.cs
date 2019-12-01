@@ -523,7 +523,7 @@ namespace DynamicCompanyMorale
     [HarmonyPatch(typeof(SGCaptainsQuartersStatusScreen), "RefreshData")]
     public static class SGCaptainsQuartersStatusScreen_RefreshData_Patch
     {
-        public static void Prefix(SGCaptainsQuartersStatusScreen __instance, bool showMoraleChange, SimGameState ___simState)
+        public static void Prefix(SGCaptainsQuartersStatusScreen __instance, EconomyScale expenditureLevel, bool showMoraleChange, SimGameState ___simState)
         {
             try
             {
@@ -534,10 +534,13 @@ namespace DynamicCompanyMorale
                     Fields.IsNextQuarterProjections = true;
                     Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] Fields.IsNextQuarterProjections: " + Fields.IsNextQuarterProjections.ToString());
 
-                    int ProjectedExpenditureMoraleValue = ___simState.ExpenditureMoraleValue[___simState.ExpenditureLevel];
+                    int CurrentExpenditureMoraleValue = ___simState.ExpenditureMoraleValue[___simState.ExpenditureLevel];
+                    Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] CurrentExpenditureMoraleValue: " + CurrentExpenditureMoraleValue);
+
+                    int ProjectedExpenditureMoraleValue = ___simState.ExpenditureMoraleValue[expenditureLevel];
                     Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] ProjectedExpenditureMoraleValue: " + ProjectedExpenditureMoraleValue);
 
-                    int ProjectedMorale = ___simState.GetCurrentAbsoluteMorale();
+                    int ProjectedMorale = ___simState.GetCurrentAbsoluteMorale() + ProjectedExpenditureMoraleValue;
                     Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] ProjectedMorale: " + ProjectedMorale);
 
                     MoraleConstantsDef moraleConstants = ___simState.CombatConstants.MoraleConstants;
@@ -563,7 +566,7 @@ namespace DynamicCompanyMorale
             }
         }
 
-        public static void Postfix(SGCaptainsQuartersStatusScreen __instance, bool showMoraleChange, SGMoraleBar ___MoralBar, SimGameState ___simState)
+        public static void Postfix(SGCaptainsQuartersStatusScreen __instance, EconomyScale expenditureLevel, bool showMoraleChange, SGMoraleBar ___MoralBar, SimGameState ___simState)
         {
             try
             {
@@ -571,8 +574,7 @@ namespace DynamicCompanyMorale
                 if (showMoraleChange)
                 {
                     int CurrentMorale = ___simState.Morale;
-                    // GetCurrentAbsoluteMorale incorporates ExpenditureMoraleValue
-                    int ProjectedMorale = ___simState.GetCurrentAbsoluteMorale();
+                    int ProjectedMorale = ___simState.GetCurrentAbsoluteMorale() + ___simState.ExpenditureMoraleValue[expenditureLevel];
                     ___MoralBar.ShowMoraleChange(CurrentMorale, ProjectedMorale);
                 }
                 //Logger.LogLine("----------------------------------------------------------------------------------------------------");
