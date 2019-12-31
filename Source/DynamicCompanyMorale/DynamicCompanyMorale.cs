@@ -540,7 +540,8 @@ namespace DynamicCompanyMorale
                     int ProjectedExpenditureMoraleValue = ___simState.ExpenditureMoraleValue[expenditureLevel];
                     Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] ProjectedExpenditureMoraleValue: " + ProjectedExpenditureMoraleValue);
 
-                    int ProjectedMorale = ___simState.GetCurrentAbsoluteMorale() + ProjectedExpenditureMoraleValue;
+                    //int ProjectedMorale = ___simState.GetCurrentAbsoluteMorale() + ProjectedExpenditureMoraleValue;
+                    int ProjectedMorale = (___simState.GetCurrentBaseMorale() + Fields.EventMoraleModifier) + ProjectedExpenditureMoraleValue;
                     Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] ProjectedMorale: " + ProjectedMorale);
 
                     MoraleConstantsDef moraleConstants = ___simState.CombatConstants.MoraleConstants;
@@ -574,7 +575,10 @@ namespace DynamicCompanyMorale
                 if (showMoraleChange)
                 {
                     int CurrentMorale = ___simState.Morale;
-                    int ProjectedMorale = ___simState.GetCurrentAbsoluteMorale() + ___simState.ExpenditureMoraleValue[expenditureLevel];
+
+                    //int ProjectedMorale = ___simState.GetCurrentAbsoluteMorale() + ___simState.ExpenditureMoraleValue[expenditureLevel];
+                    int ProjectedMorale = (___simState.GetCurrentBaseMorale() + Fields.EventMoraleModifier) + ___simState.ExpenditureMoraleValue[expenditureLevel];
+
                     ___MoralBar.ShowMoraleChange(CurrentMorale, ProjectedMorale);
                 }
                 //Logger.LogLine("----------------------------------------------------------------------------------------------------");
