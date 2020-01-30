@@ -43,10 +43,12 @@
     <Reference Include="UnityEngine.UI" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\..\..\Link\MadLogger.cs">
+      <Link>MadLogger.cs</Link>
+    </Compile>
     <Compile Include="EventGenerator.cs" />
     <Compile Include="Helper.cs" />
     <Compile Include="Holder.cs" />
-    <Compile Include="Logger.cs" />
     <Compile Include="DynamicCompanyMorale.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Settings.cs" />

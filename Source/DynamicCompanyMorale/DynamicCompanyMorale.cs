@@ -24,35 +24,32 @@ namespace DynamicCompanyMorale
         internal static string LogPath;
         internal static string ModDirectory;
         internal static Settings Settings;
-        internal static SimGameEventOption LastModifiedOption;
-
-        //internal static int EventMoraleMultiplier = 4;
-        //internal static int EventMoraleDurationBase = 15;
-        //internal static int EventMoraleDurationNumerator = 240;
-
-        // BEN: Enable EventGenerator?
-        internal static bool EnableEventGenerator = false;
-
-        // BEN: Debug (0: nothing, 1: errors, 2:all)
+        // BEN: DebugLevel (0: nothing, 1: error, 2: debug, 3: info)
         internal static int DebugLevel = 1;
+
+        internal static SimGameEventOption LastModifiedOption;
+        internal static bool EnableEventGenerator = false;
 
         public static void Init(string directory, string settings)
         {
-            HarmonyInstance.Create("de.ben.DynamicCompanyMorale").PatchAll(Assembly.GetExecutingAssembly());
-
             ModDirectory = directory;
-
             LogPath = Path.Combine(ModDirectory, "DynamicCompanyMorale.log");
-            File.CreateText(DynamicCompanyMorale.LogPath);
+
+            Logger.Initialize(LogPath, DebugLevel, ModDirectory, nameof(DynamicCompanyMorale));
 
             try
             {
                 Settings = JsonConvert.DeserializeObject<Settings>(settings);
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 Settings = new Settings();
+                Logger.LogError(e);
             }
+
+            // Harmony calls need to go last here because their Prepare() methods directly check Settings...
+            HarmonyInstance harmony = HarmonyInstance.Create("de.mad.DynamicCompanyMorale");
+            harmony.PatchAll(Assembly.GetExecutingAssembly());
         }
     }
 
