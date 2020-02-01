@@ -44,7 +44,7 @@ namespace DynamicCompanyMorale
             catch (Exception e)
             {
                 Settings = new Settings();
-                Logger.LogError(e);
+                Logger.Error(e);
             }
 
             // Harmony calls need to go last here because their Prepare() methods directly check Settings...
@@ -83,26 +83,26 @@ namespace DynamicCompanyMorale
             {
                 bool SkipOriginalMethod = false;
 
-                Logger.LogLine("[SimGameState_RemoveSimGameEventResult_PREFIX] Will handle result with Stat.name Morale (if any)");
+                Logger.Debug("[SimGameState_RemoveSimGameEventResult_PREFIX] Will handle result with Stat.name Morale (if any)");
                 if (result.Stats != null)
                 {
                     for (int i = 0; i < result.Stats.Length; i++)
                     {
                         if (result.Stats[i].name == "Morale")
                         {
-                            Logger.LogLine("[SimGameState_RemoveSimGameEventResult_PREFIX] Found TemporarySimGameResult with Stat.name Morale(" + result.Stats[i].value + ")");
+                            Logger.Debug("[SimGameState_RemoveSimGameEventResult_PREFIX] Found TemporarySimGameResult with Stat.name Morale(" + result.Stats[i].value + ")");
 
                             int AdjustedEventResultMoraleValue = (-1) * int.Parse(result.Stats[i].value);
-                            Logger.LogLine("[SimGameState_RemoveSimGameEventResult_PREFIX] AdjustedEventResultMoraleValue: " + AdjustedEventResultMoraleValue.ToString());
+                            Logger.Debug("[SimGameState_RemoveSimGameEventResult_PREFIX] AdjustedEventResultMoraleValue: " + AdjustedEventResultMoraleValue.ToString());
 
                             // Modify Fields.EventMoraleModifier;
-                            //Logger.LogLine("[SimGameState_RemoveSimGameEventResult_PREFIX] Fields.EventMoraleModifier (before): " + Fields.EventMoraleModifier.ToString());
+                            //Logger.Debug("[SimGameState_RemoveSimGameEventResult_PREFIX] Fields.EventMoraleModifier (before): " + Fields.EventMoraleModifier.ToString());
 
                             int CurrentEventMoraleModifier = Fields.EventMoraleModifier;
                             int UpdatedEventMoraleModifier = CurrentEventMoraleModifier + AdjustedEventResultMoraleValue;
                             //Fields.EventMoraleModifier = UpdatedEventMoraleModifier;
 
-                            //Logger.LogLine("[SimGameState_RemoveSimGameEventResult_PREFIX] Fields.EventMoraleModifier (after): " + Fields.EventMoraleModifier.ToString());
+                            //Logger.Debug("[SimGameState_RemoveSimGameEventResult_PREFIX] Fields.EventMoraleModifier (after): " + Fields.EventMoraleModifier.ToString());
 
 
                             // Set "Morale" stat directly
@@ -115,7 +115,7 @@ namespace DynamicCompanyMorale
 
 
                             // Push message out
-                            Logger.LogLine("[SimGameState_RemoveSimGameEventResult_PREFIX] Call SimGameState.RoomManager.ShipRoom.AddEventToast with custom message");
+                            Logger.Debug("[SimGameState_RemoveSimGameEventResult_PREFIX] Call SimGameState.RoomManager.ShipRoom.AddEventToast with custom message");
                             List<ResultDescriptionEntry> list = new List<ResultDescriptionEntry>();
                             GameContext gameContext = new GameContext(__instance.Context);
                             string valuePrefix = int.Parse(result.Stats[i].value) > 0 ? "+" : "";
@@ -142,19 +142,19 @@ namespace DynamicCompanyMorale
                 }
                 if (SkipOriginalMethod)
                 {
-                    Logger.LogLine("[SimGameState_RemoveSimGameEventResult_PREFIX] Handled event with Stat.name Morale, will skip original method...");
-                    Logger.LogLine("----------------------------------------------------------------------------------------------------");
+                    Logger.Debug("[SimGameState_RemoveSimGameEventResult_PREFIX] Handled event with Stat.name Morale, will skip original method...");
+                    Logger.Debug("----------------------------------------------------------------------------------------------------");
                     return false;
                 }
                 else
                 {
-                    Logger.LogLine("----------------------------------------------------------------------------------------------------");
+                    Logger.Debug("----------------------------------------------------------------------------------------------------");
                     return true;
                 }
             }
             catch (Exception e)
             {
-                Logger.LogError(e);
+                Logger.Error(e);
                 return true;
             }
         }
@@ -174,24 +174,24 @@ namespace DynamicCompanyMorale
                 // Reset is not advised anymore as the new morale widget shows "Current Morale" in Quarters summary. Probably better to set regularly in LeftWidgetUpdate?
                 /*
                 int CurrentBaseMorale = __instance.GetCurrentBaseMorale();
-                Logger.LogLine("[SimGameState_OnNewQuarterBegin_POSTFIX] Resetting Morale to CurrentBaseMorale(" + CurrentBaseMorale + ")");
+                Logger.Debug("[SimGameState_OnNewQuarterBegin_POSTFIX] Resetting Morale to CurrentBaseMorale(" + CurrentBaseMorale + ")");
                 __instance.CompanyStats.ModifyStat<int>("Mission", 0, "COMPANY_MonthlyStartingMorale", StatCollection.StatOperation.Set, CurrentBaseMorale, -1, true);
                 __instance.CompanyStats.ModifyStat<int>("Mission", 0, "Morale", StatCollection.StatOperation.Set, CurrentBaseMorale, -1, true);
-                Logger.LogLine("----------------------------------------------------------------------------------------------------");
+                Logger.Debug("----------------------------------------------------------------------------------------------------");
                 */
 
                 // A reset to the absolute morale value according to the new ruleset (and including temp events) is still advisory to "fix" savegames prior to this mod enabled...
-                Logger.LogLine("[SimGameState_OnNewQuarterBegin_POSTFIX] Check before setting SimGameState.Morale: " + __instance.Morale.ToString());
+                Logger.Debug("[SimGameState_OnNewQuarterBegin_POSTFIX] Check before setting SimGameState.Morale: " + __instance.Morale.ToString());
 
                 int CurrentAbsoluteMorale = __instance.GetCurrentAbsoluteMorale();
                 //__instance.CompanyStats.ModifyStat<int>("Mission", 0, "COMPANY_MonthlyStartingMorale", StatCollection.StatOperation.Set, CurrentAbsoluteMorale, -1, true);
                 __instance.CompanyStats.ModifyStat<int>("Mission", 0, "Morale", StatCollection.StatOperation.Set, CurrentAbsoluteMorale, -1, true);
 
-                Logger.LogLine("[SimGameState_OnNewQuarterBegin_POSTFIX] Check after setting SimGameState.Morale: " + __instance.Morale.ToString());
+                Logger.Debug("[SimGameState_OnNewQuarterBegin_POSTFIX] Check after setting SimGameState.Morale: " + __instance.Morale.ToString());
             }
             catch (Exception e)
             {
-                Logger.LogError(e);
+                Logger.Error(e);
             }
         }
     }
@@ -204,7 +204,7 @@ namespace DynamicCompanyMorale
         {
             try
             {
-                Logger.LogLine("[SGFlashpointEndScreen_InitializeData_PREFIX] Check eventResults");
+                Logger.Debug("[SGFlashpointEndScreen_InitializeData_PREFIX] Check eventResults");
 
                 // Prepare result for extraction of morale stat
                 SimGameEventResult extractedMoraleResult = new SimGameEventResult();
@@ -218,7 +218,7 @@ namespace DynamicCompanyMorale
                         {
                             if (eventResult.Stats[i].name == "Morale")
                             {
-                                Logger.LogLine("[SGFlashpointEndScreen_InitializeData_PREFIX] eventResultMoraleValue (unaltered): " + eventResult.Stats[i].value);
+                                Logger.Debug("[SGFlashpointEndScreen_InitializeData_PREFIX] eventResultMoraleValue (unaltered): " + eventResult.Stats[i].value);
 
                                 // Mark eventResults[] as containing Morale Stat
                                 foundMoraleResult = true;
@@ -234,13 +234,13 @@ namespace DynamicCompanyMorale
                                 extractedMoraleResult.ForceEvents = new SimGameForcedEvent[] { };
                                 extractedMoraleResult.TemporaryResult = true;
                                 extractedMoraleResult.ResultDuration = DynamicCompanyMorale.Settings.EventMoraleDurationBase + Math.Abs(DynamicCompanyMorale.Settings.EventMoraleDurationNumerator / adjustedMoraleValue);
-                                Logger.LogLine("[SGFlashpointEndScreen_InitializeData_PREFIX] extractedMoraleResultValue: " + extractedMoraleResult.Stats[0].value);
+                                Logger.Debug("[SGFlashpointEndScreen_InitializeData_PREFIX] extractedMoraleResultValue: " + extractedMoraleResult.Stats[0].value);
 
                                 // Invalidate original morale stat
                                 //eventResult.Stats[i].name = ""; // Breaks code
                                 //eventResult.Stats[i].value = "0"; // This is enough
                                 eventResult.Stats[i].typeString = ""; // Better
-                                Logger.LogLine("[SGFlashpointEndScreen_InitializeData_PREFIX] eventResultIsValid: " + !String.IsNullOrEmpty(eventResult.Stats[i].typeString));
+                                Logger.Debug("[SGFlashpointEndScreen_InitializeData_PREFIX] eventResultIsValid: " + !String.IsNullOrEmpty(eventResult.Stats[i].typeString));
                             }
                         }
                     }
@@ -248,22 +248,22 @@ namespace DynamicCompanyMorale
 
                 if (foundMoraleResult)
                 {
-                    Logger.LogLine("[SGFlashpointEndScreen_InitializeData_PREFIX] eventResults.Length (before): " + eventResults.Length.ToString());
-                    Logger.LogLine("[SGFlashpointEndScreen_InitializeData_PREFIX] Adding extractedMoraleResult to eventResults now");
+                    Logger.Debug("[SGFlashpointEndScreen_InitializeData_PREFIX] eventResults.Length (before): " + eventResults.Length.ToString());
+                    Logger.Debug("[SGFlashpointEndScreen_InitializeData_PREFIX] Adding extractedMoraleResult to eventResults now");
 
                     Array.Resize<SimGameEventResult>(ref eventResults, eventResults.Length + 1);
                     eventResults[eventResults.Length - 1] = extractedMoraleResult;
 
-                    Logger.LogLine("[SGFlashpointEndScreen_InitializeData_PREFIX] eventResults.Length (after): " + eventResults.Length.ToString());
+                    Logger.Debug("[SGFlashpointEndScreen_InitializeData_PREFIX] eventResults.Length (after): " + eventResults.Length.ToString());
 
                     // Set early for UI
                     Fields.IsTemporaryMoraleEventActive = true;
                 }
-                Logger.LogLine("----------------------------------------------------------------------------------------------------");
+                Logger.Debug("----------------------------------------------------------------------------------------------------");
             }
             catch (Exception e)
             {
-                Logger.LogError(e);
+                Logger.Error(e);
             }
         }
         public static void Postfix(SGFlashpointEndScreen __instance, SimGameState sim)
@@ -284,7 +284,7 @@ namespace DynamicCompanyMorale
             }
             catch (Exception e)
             {
-                Logger.LogError(e);
+                Logger.Error(e);
             }
         }
     }
@@ -303,7 +303,7 @@ namespace DynamicCompanyMorale
 
                 for (int i = entries.Count - 1; i >= 0; i--)
                 {
-                    Logger.LogLine("[AAR_OtherResultsWidget_DisplayData_PREFIX] entries[i].Text: " + entries[i].Text.ToString());
+                    Logger.Debug("[AAR_OtherResultsWidget_DisplayData_PREFIX] entries[i].Text: " + entries[i].Text.ToString());
                     string text = entries[i].Text.ToString();
 
                     if (text.Contains("Morale"))
@@ -315,13 +315,13 @@ namespace DynamicCompanyMorale
                         suffix += " for " + duration + " days";
                         entries[i].Text = new Text(entry + suffix, new object[0]);
                     }
-                    Logger.LogLine("[AAR_OtherResultsWidget_DisplayData_PREFIX] entries[i].Text: " + entries[i].Text.ToString()); 
+                    Logger.Debug("[AAR_OtherResultsWidget_DisplayData_PREFIX] entries[i].Text: " + entries[i].Text.ToString()); 
                 }
-                Logger.LogLine("----------------------------------------------------------------------------------------------------");
+                Logger.Debug("----------------------------------------------------------------------------------------------------");
             }
             catch (Exception e)
             {
-                Logger.LogError(e);
+                Logger.Error(e);
             }
         }
     }
@@ -333,10 +333,10 @@ namespace DynamicCompanyMorale
         {
             try
             {
-                Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] Selected option: " + option.Description.Id);
+                Logger.Debug("[SimGameState_OnEventOptionSelected_PREFIX] Selected option: " + option.Description.Id);
                 foreach (SimGameEventResultSet eventResultSet in option.ResultSets)
                 {
-                    Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] Modifying morale value of possible outcome: " + eventResultSet.Description.Id + " (if any)");
+                    Logger.Debug("[SimGameState_OnEventOptionSelected_PREFIX] Modifying morale value of possible outcome: " + eventResultSet.Description.Id + " (if any)");
 
                     // Prepare result for extraction of morale stat
                     SimGameEventResult extractedMoraleResult = new SimGameEventResult();
@@ -350,7 +350,7 @@ namespace DynamicCompanyMorale
                             {
                                 if (eventResult.Stats[i].name == "Morale")
                                 {
-                                    Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] eventResultMoraleValue (unaltered): " + eventResult.Stats[i].value);
+                                    Logger.Debug("[SimGameState_OnEventOptionSelected_PREFIX] eventResultMoraleValue (unaltered): " + eventResult.Stats[i].value);
 
                                     // Mark Results[] as containing Morale Stat
                                     foundMoraleResult = true;
@@ -366,13 +366,13 @@ namespace DynamicCompanyMorale
                                     extractedMoraleResult.ForceEvents = new SimGameForcedEvent[] { };
                                     extractedMoraleResult.TemporaryResult = true;
                                     extractedMoraleResult.ResultDuration = DynamicCompanyMorale.Settings.EventMoraleDurationBase + Math.Abs(DynamicCompanyMorale.Settings.EventMoraleDurationNumerator / adjustedMoraleValue);
-                                    Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] extractedMoraleResultValue: " + extractedMoraleResult.Stats[0].value);
+                                    Logger.Debug("[SimGameState_OnEventOptionSelected_PREFIX] extractedMoraleResultValue: " + extractedMoraleResult.Stats[0].value);
 
                                     // Invalidate original morale stat
                                     //eventResult.Stats[i].name = ""; // Breaks code
                                     //eventResult.Stats[i].value = "0"; // This is enough
                                     eventResult.Stats[i].typeString = ""; // Better
-                                    Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] eventResultIsValid: " + !String.IsNullOrEmpty(eventResult.Stats[i].typeString));
+                                    Logger.Debug("[SimGameState_OnEventOptionSelected_PREFIX] eventResultIsValid: " + !String.IsNullOrEmpty(eventResult.Stats[i].typeString));
                                 }
                             }
                         }
@@ -380,13 +380,13 @@ namespace DynamicCompanyMorale
 
                     if (foundMoraleResult)
                     {
-                        Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] eventResultSet.Results.Length (before): " + eventResultSet.Results.Length.ToString());
-                        Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] Adding extractedMoraleResult to eventResultSet.Results now");
+                        Logger.Debug("[SimGameState_OnEventOptionSelected_PREFIX] eventResultSet.Results.Length (before): " + eventResultSet.Results.Length.ToString());
+                        Logger.Debug("[SimGameState_OnEventOptionSelected_PREFIX] Adding extractedMoraleResult to eventResultSet.Results now");
 
                         Array.Resize<SimGameEventResult>(ref eventResultSet.Results, eventResultSet.Results.Length + 1);
                         eventResultSet.Results[eventResultSet.Results.Length - 1] = extractedMoraleResult;
 
-                        Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] eventResultSet.Results.Length (after): " + eventResultSet.Results.Length.ToString());
+                        Logger.Debug("[SimGameState_OnEventOptionSelected_PREFIX] eventResultSet.Results.Length (after): " + eventResultSet.Results.Length.ToString());
 
                         // Set early for UI
                         Fields.IsTemporaryMoraleEventActive = true;
@@ -394,12 +394,12 @@ namespace DynamicCompanyMorale
                 }
                 DynamicCompanyMorale.LastModifiedOption = option;
                 // BEN: After the original method is called, everything is already in the TemporaryResultTracker & several "updateData"-Calls are made...
-                Logger.LogLine("----------------------------------------------------------------------------------------------------");
+                Logger.Debug("----------------------------------------------------------------------------------------------------");
 
             }
             catch (Exception e)
             {
-                Logger.LogError(e);
+                Logger.Error(e);
             }
         }
         public static void Postfix(SimGameState __instance, ref SimGameEventOption option)
@@ -420,7 +420,7 @@ namespace DynamicCompanyMorale
             }
             catch (Exception e)
             {
-                Logger.LogError(e);
+                Logger.Error(e);
             }
         }
     }
@@ -434,7 +434,7 @@ namespace DynamicCompanyMorale
             {
                 foreach (SimGameEventResultSet eventResultSet in DynamicCompanyMorale.LastModifiedOption.ResultSets)
                 {
-                    Logger.LogLine("[SimGameState_OnEventOptionSelected_PREFIX] Resetting morale value of saved possible outcome: " + eventResultSet.Description.Id + " (if any)");
+                    Logger.Debug("[SimGameState_OnEventOptionSelected_PREFIX] Resetting morale value of saved possible outcome: " + eventResultSet.Description.Id + " (if any)");
                     bool foundMoraleResult = false;
 
                     foreach (SimGameEventResult eventResult in eventResultSet.Results)
@@ -450,35 +450,35 @@ namespace DynamicCompanyMorale
                                     // BEN: Seems like at this point the eventResult is already added to the TemporaryResultTracker.
                                     // So this reset will do nothing (to tracked temporary results).
                                     // Doing this only to minimize potential side-effects
-                                    Logger.LogLine("[SimGameState_OnEventDismissed_POSTFIX] eventResultMoraleValue: " + eventResult.Stats[i].value);
-                                    Logger.LogLine("[SimGameState_OnEventDismissed_POSTFIX] eventResultIsValid (before): " + !String.IsNullOrEmpty(eventResult.Stats[i].typeString));
+                                    Logger.Debug("[SimGameState_OnEventDismissed_POSTFIX] eventResultMoraleValue: " + eventResult.Stats[i].value);
+                                    Logger.Debug("[SimGameState_OnEventDismissed_POSTFIX] eventResultIsValid (before): " + !String.IsNullOrEmpty(eventResult.Stats[i].typeString));
                                     if (String.IsNullOrEmpty(eventResult.Stats[i].typeString))
                                     {
                                         eventResult.Stats[i].typeString = "System.Int32";
                                     }
-                                    Logger.LogLine("[SimGameState_OnEventDismissed_POSTFIX] eventResultIsValid (after): " + !String.IsNullOrEmpty(eventResult.Stats[i].typeString));
+                                    Logger.Debug("[SimGameState_OnEventDismissed_POSTFIX] eventResultIsValid (after): " + !String.IsNullOrEmpty(eventResult.Stats[i].typeString));
                                 }
                             }
                         }
                     }
                     if (foundMoraleResult)
                     {
-                        Logger.LogLine("[SimGameState_OnEventDismissed_POSTFIX] eventResultSet.Results.Length (before): " + eventResultSet.Results.Length.ToString());
-                        Logger.LogLine("[SimGameState_OnEventDismissed_POSTFIX] Removing extractedMoraleResult from eventResultSet.Results now");
+                        Logger.Debug("[SimGameState_OnEventDismissed_POSTFIX] eventResultSet.Results.Length (before): " + eventResultSet.Results.Length.ToString());
+                        Logger.Debug("[SimGameState_OnEventDismissed_POSTFIX] Removing extractedMoraleResult from eventResultSet.Results now");
 
                         Array.Resize<SimGameEventResult>(ref eventResultSet.Results, eventResultSet.Results.Length - 1);
 
-                        Logger.LogLine("[SimGameState_OnEventDismissed_POSTFIX] eventResultSet.Results.Length (after): " + eventResultSet.Results.Length.ToString());
+                        Logger.Debug("[SimGameState_OnEventDismissed_POSTFIX] eventResultSet.Results.Length (after): " + eventResultSet.Results.Length.ToString());
                     }
                 }
                 // Refresh dependent widgets
                 __instance.RoomManager.RefreshLeftNavFromShipScreen();
 
-                Logger.LogLine("----------------------------------------------------------------------------------------------------");
+                Logger.Debug("----------------------------------------------------------------------------------------------------");
             }
             catch (Exception e)
             {
-                Logger.LogError(e);
+                Logger.Error(e);
             }
         }
     }
@@ -503,15 +503,15 @@ namespace DynamicCompanyMorale
 
                     if (IsMoraleValueTextTooltip && IsNextQuarterProjections)
                     {
-                        Logger.LogLine("[TooltipManager_SpawnTooltip_PREFIX] tooltipText: " + tooltipText);
+                        Logger.Debug("[TooltipManager_SpawnTooltip_PREFIX] tooltipText: " + tooltipText);
                         data = "You will generate <color=#F79B26>" + Fields.ProjectedResolvePerTurn + " Resolve/Turn</color> in combat";
-                        Logger.LogLine("[TooltipManager_SpawnTooltip_PREFIX] Modified data: " + data);
+                        Logger.Debug("[TooltipManager_SpawnTooltip_PREFIX] Modified data: " + data);
                     }
                 }
             }
             catch (Exception e)
             {
-                Logger.LogError(e);
+                Logger.Error(e);
             }
         }
     }
@@ -529,17 +529,17 @@ namespace DynamicCompanyMorale
                 {
                     // For (dirty) tooltip correction of moraleValueText when showing a projected value
                     Fields.IsNextQuarterProjections = true;
-                    Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] Fields.IsNextQuarterProjections: " + Fields.IsNextQuarterProjections.ToString());
+                    Logger.Debug("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] Fields.IsNextQuarterProjections: " + Fields.IsNextQuarterProjections.ToString());
 
                     int CurrentExpenditureMoraleValue = ___simState.ExpenditureMoraleValue[___simState.ExpenditureLevel];
-                    Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] CurrentExpenditureMoraleValue: " + CurrentExpenditureMoraleValue);
+                    Logger.Debug("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] CurrentExpenditureMoraleValue: " + CurrentExpenditureMoraleValue);
 
                     int ProjectedExpenditureMoraleValue = ___simState.ExpenditureMoraleValue[expenditureLevel];
-                    Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] ProjectedExpenditureMoraleValue: " + ProjectedExpenditureMoraleValue);
+                    Logger.Debug("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] ProjectedExpenditureMoraleValue: " + ProjectedExpenditureMoraleValue);
 
                     //int ProjectedMorale = ___simState.GetCurrentAbsoluteMorale() + ProjectedExpenditureMoraleValue;
                     int ProjectedMorale = (___simState.GetCurrentBaseMorale() + Fields.EventMoraleModifier) + ProjectedExpenditureMoraleValue;
-                    Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] ProjectedMorale: " + ProjectedMorale);
+                    Logger.Debug("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] ProjectedMorale: " + ProjectedMorale);
 
                     MoraleConstantsDef moraleConstants = ___simState.CombatConstants.MoraleConstants;
                     for (int i = moraleConstants.BaselineAddFromSimGameThresholds.Length - 1; i >= 0; i--)
@@ -547,7 +547,7 @@ namespace DynamicCompanyMorale
                         if (ProjectedMorale >= moraleConstants.BaselineAddFromSimGameThresholds[i])
                         {
                             Fields.ProjectedResolvePerTurn = moraleConstants.BaselineAddFromSimGameValues[i];
-                            Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] Fields.ProjectedResolvePerTurn: " + Fields.ProjectedResolvePerTurn);
+                            Logger.Debug("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] Fields.ProjectedResolvePerTurn: " + Fields.ProjectedResolvePerTurn);
                             break;
                         }
                     }
@@ -555,12 +555,12 @@ namespace DynamicCompanyMorale
                 else
                 {
                     Fields.IsNextQuarterProjections = false;
-                    Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] Fields.IsNextQuarterProjections: " + Fields.IsNextQuarterProjections.ToString());
+                    Logger.Debug("[SGCaptainsQuartersStatusScreen_RefreshData_PREFIX] Fields.IsNextQuarterProjections: " + Fields.IsNextQuarterProjections.ToString());
                 }
             }
             catch (Exception e)
             {
-                Logger.LogError(e);
+                Logger.Error(e);
             }
         }
 
@@ -568,7 +568,7 @@ namespace DynamicCompanyMorale
         {
             try
             {
-                //Logger.LogLine("[SGCaptainsQuartersStatusScreen_RefreshData_POSTFIX]");
+                //Logger.Debug("[SGCaptainsQuartersStatusScreen_RefreshData_POSTFIX]");
                 if (showMoraleChange)
                 {
                     int CurrentMorale = ___simState.Morale;
@@ -578,11 +578,11 @@ namespace DynamicCompanyMorale
 
                     ___MoralBar.ShowMoraleChange(CurrentMorale, ProjectedMorale);
                 }
-                //Logger.LogLine("----------------------------------------------------------------------------------------------------");
+                //Logger.Debug("----------------------------------------------------------------------------------------------------");
             }
             catch (Exception e)
             {
-                Logger.LogError(e);
+                Logger.Error(e);
             }
         }
     }
@@ -594,31 +594,31 @@ namespace DynamicCompanyMorale
         {
             try
             {
-                Logger.LogLine("[SGCaptainsQuartersStatusScreen_Dismiss_PREFIX] Check before setting SimGameState.Morale: " + ___simState.Morale.ToString());
+                Logger.Debug("[SGCaptainsQuartersStatusScreen_Dismiss_PREFIX] Check before setting SimGameState.Morale: " + ___simState.Morale.ToString());
 
                 int CurrentAbsoluteMorale = ___simState.GetCurrentAbsoluteMorale();
                 //___simState.CompanyStats.ModifyStat<int>("Mission", 0, "COMPANY_MonthlyStartingMorale", StatCollection.StatOperation.Set, CurrentAbsoluteMorale, -1, true);
                 ___simState.CompanyStats.ModifyStat<int>("Mission", 0, "Morale", StatCollection.StatOperation.Set, CurrentAbsoluteMorale, -1, true);
 
-                Logger.LogLine("[SGCaptainsQuartersStatusScreen_Dismiss_PREFIX] Check after setting SimGameState.Morale: " + ___simState.Morale.ToString());
+                Logger.Debug("[SGCaptainsQuartersStatusScreen_Dismiss_PREFIX] Check after setting SimGameState.Morale: " + ___simState.Morale.ToString());
 
 
 
                 // Workaround vanilla bug and saving just set ExpenseLevel in custom field too
                 StatCollection companyStats = (StatCollection)AccessTools.Field(typeof(SimGameState), "companyStats").GetValue(___simState);
-                Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] SimGameState.companyStats.ExpenseLevel: " + companyStats.GetValue<int>("ExpenseLevel"));
+                Logger.Debug("[SGNavigationWidgetLeft_UpdateData_POSTFIX] SimGameState.companyStats.ExpenseLevel: " + companyStats.GetValue<int>("ExpenseLevel"));
                 Fields.SavedExpenseLevel = companyStats.GetValue<int>("ExpenseLevel");
-                Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Fields.SavedExpenseLevel: " + Fields.SavedExpenseLevel);
+                Logger.Debug("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Fields.SavedExpenseLevel: " + Fields.SavedExpenseLevel);
 
 
                 // Refresh dependent widgets!
                 ___simState.RoomManager.RefreshLeftNavFromShipScreen();
 
-                Logger.LogLine("----------------------------------------------------------------------------------------------------");
+                Logger.Debug("----------------------------------------------------------------------------------------------------");
             }
             catch (Exception e)
             {
-                Logger.LogError(e);
+                Logger.Error(e);
             }
         }
     }
@@ -650,7 +650,7 @@ namespace DynamicCompanyMorale
             }
             catch (Exception e)
             {
-                Logger.LogError(e);
+                Logger.Error(e);
             }
         }
     }
@@ -664,23 +664,23 @@ namespace DynamicCompanyMorale
             {
                 // Validate that this is called FIRST after Load||Mission||Conversations... otherwise Save/Load has to be re-enabled!
                 Fields.IsTemporaryMoraleEventActive = ___simState.IsTemporaryMoraleEventActive();
-                Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check Fields.IsTemporaryMoraleEventActive: " + Fields.IsTemporaryMoraleEventActive);
+                Logger.Debug("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check Fields.IsTemporaryMoraleEventActive: " + Fields.IsTemporaryMoraleEventActive);
 
                 Fields.EventMoraleModifier = ___simState.GetAbsoluteMoraleValueOfAllTemporaryResults();
-                Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check Fields.EventMoraleModifier: " + Fields.EventMoraleModifier);
+                Logger.Debug("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check Fields.EventMoraleModifier: " + Fields.EventMoraleModifier);
 
-                Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check SimGameState.Morale: " + ___simState.Morale.ToString());
-                Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check CurrentAbsoluteMorale(uncapped): " + ___simState.GetCurrentAbsoluteMorale(false).ToString());
-                Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check SimGameState.ExpenditureLevel: " + ___simState.ExpenditureLevel.ToString());
+                Logger.Debug("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check SimGameState.Morale: " + ___simState.Morale.ToString());
+                Logger.Debug("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check CurrentAbsoluteMorale(uncapped): " + ___simState.GetCurrentAbsoluteMorale(false).ToString());
+                Logger.Debug("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check SimGameState.ExpenditureLevel: " + ___simState.ExpenditureLevel.ToString());
 
                 StatCollection companyStats = (StatCollection)AccessTools.Field(typeof(SimGameState), "companyStats").GetValue(___simState);
-                Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check SimGameState.companyStats.ExpenseLevel: " + companyStats.GetValue<int>("ExpenseLevel"));
-                Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check Fields.SavedExpenseLevel: " + Fields.SavedExpenseLevel);
+                Logger.Debug("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check SimGameState.companyStats.ExpenseLevel: " + companyStats.GetValue<int>("ExpenseLevel"));
+                Logger.Debug("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check Fields.SavedExpenseLevel: " + Fields.SavedExpenseLevel);
 
 
 
                 // Test
-                Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Fields.ShouldFixExpenseLevel: " + Fields.ShouldFixExpenseLevel);
+                Logger.Debug("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Fields.ShouldFixExpenseLevel: " + Fields.ShouldFixExpenseLevel);
                 if (Fields.ShouldFixExpenseLevel == true)
                 {
                     ___simState.FixExpenditureLevel();
@@ -688,16 +688,16 @@ namespace DynamicCompanyMorale
                 }
 
                 // Set correct morale NOW
-                Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Calling SimGameState.SetMorale NOW");
+                Logger.Debug("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Calling SimGameState.SetMorale NOW");
                 int CurrentAbsoluteMorale = ___simState.GetCurrentAbsoluteMorale();
                 ___simState.SetMorale(CurrentAbsoluteMorale);
-                Logger.LogLine("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check SimGameState.Morale: " + ___simState.Morale.ToString());
+                Logger.Debug("[SGNavigationWidgetLeft_UpdateData_POSTFIX] Check SimGameState.Morale: " + ___simState.Morale.ToString());
 
-                Logger.LogLine("----------------------------------------------------------------------------------------------------");
+                Logger.Debug("----------------------------------------------------------------------------------------------------");
             }
             catch (Exception e)
             {
-                Logger.LogError(e);
+                Logger.Error(e);
             }
         }
     }
@@ -721,32 +721,32 @@ namespace DynamicCompanyMorale
                 int moraleLevelFromMoraleValue = ___simState.GetMoraleLevelFromMoraleValue(value);
                 string text = "MORALE: " + ___simState.GetDescriptorForMoraleLevel(moraleLevelFromMoraleValue);
 
-                //Logger.LogLine("[SGMoraleBar_RefreshTextForMoraleValue_POSTFIX] IsTemporaryMoraleEventActive: " + ___simState.IsTemporaryMoraleEventActive().ToString());
+                //Logger.Debug("[SGMoraleBar_RefreshTextForMoraleValue_POSTFIX] IsTemporaryMoraleEventActive: " + ___simState.IsTemporaryMoraleEventActive().ToString());
 
                 if (EventMoraleModifier > 0)
                 {
                     color = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.green;
-                    Logger.LogLine("[SGMoraleBar_RefreshTextForMoraleValue_POSTFIX] Green");
+                    Logger.Debug("[SGMoraleBar_RefreshTextForMoraleValue_POSTFIX] Green");
                     text += " (+" + EventMoraleModifier.ToString() + " from events)";
                 }
                 else if (EventMoraleModifier < 0)
                 {
                     color = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.red;
-                    Logger.LogLine("[SGMoraleBar_RefreshTextForMoraleValue_POSTFIX] Red");
+                    Logger.Debug("[SGMoraleBar_RefreshTextForMoraleValue_POSTFIX] Red");
                     text += " (" + EventMoraleModifier.ToString() + " from events)";
                 }
                 // Zero from two or more temp results
                 else if (Fields.IsTemporaryMoraleEventActive)
                 {
                     color = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.blue;
-                    Logger.LogLine("[SGMoraleBar_RefreshTextForMoraleValue_POSTFIX] Blue");
+                    Logger.Debug("[SGMoraleBar_RefreshTextForMoraleValue_POSTFIX] Blue");
                     text += " (+ - " + EventMoraleModifier.ToString() + " from events)";
                 }
                 // Zero from no active temp results
                 else
                 {
                     color = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.white;
-                    Logger.LogLine("[SGMoraleBar_RefreshTextForMoraleValue_POSTFIX] White");
+                    Logger.Debug("[SGMoraleBar_RefreshTextForMoraleValue_POSTFIX] White");
                 }
                 //moraleValueText.color = color;
                 moraleValueText.faceColor = color;
@@ -755,11 +755,11 @@ namespace DynamicCompanyMorale
                 text
                 });
 
-                Logger.LogLine("----------------------------------------------------------------------------------------------------");
+                Logger.Debug("----------------------------------------------------------------------------------------------------");
             }
             catch (Exception e)
             {
-                Logger.LogError(e);
+                Logger.Error(e);
             }
         }
     }
@@ -774,15 +774,15 @@ namespace DynamicCompanyMorale
         {
             StatCollection companyStats = (StatCollection)AccessTools.Field(typeof(SimGameState), "companyStats").GetValue(simGameState);
             int ExpectedExpenseLevel = Fields.SavedExpenseLevel;
-            Logger.LogLine("[Custom.FixExpenditureLevel] ExpectedExpenseLevel: " + ExpectedExpenseLevel.ToString());
+            Logger.Debug("[Custom.FixExpenditureLevel] ExpectedExpenseLevel: " + ExpectedExpenseLevel.ToString());
 
             if (companyStats.ContainsStatistic("ExpenseLevel"))
             {
                 int CurrentExpenseLevel = companyStats.GetValue<int>("ExpenseLevel");
-                Logger.LogLine("[Custom.FixExpenditureLevel] CurrentExpenseLevel: " + CurrentExpenseLevel.ToString());
+                Logger.Debug("[Custom.FixExpenditureLevel] CurrentExpenseLevel: " + CurrentExpenseLevel.ToString());
                 if (CurrentExpenseLevel != ExpectedExpenseLevel)
                 {
-                    Logger.LogLine("[Custom.FixExpenditureLevel] APPLY FIX");
+                    Logger.Debug("[Custom.FixExpenditureLevel] APPLY FIX");
                     companyStats.ModifyStat("Expenditure Change", 0, "ExpenseLevel", StatCollection.StatOperation.Set, ExpectedExpenseLevel, -1, true);
                 }
             }
@@ -813,11 +813,11 @@ namespace DynamicCompanyMorale
             int EventMoraleModifier = Fields.EventMoraleModifier;
 
             int CurrentAbsoluteMorale = CurrentBaseMorale + CurrentExpenditureMoraleValue + EventMoraleModifier;
-            Logger.LogLine("[Custom.GetCurrentAbsoluteMorale]" + CurrentAbsoluteMorale.ToString());
+            Logger.Debug("[Custom.GetCurrentAbsoluteMorale]" + CurrentAbsoluteMorale.ToString());
 
             if (CapAtLimits)
             {
-                Logger.LogLine("[Custom.GetCurrentAbsoluteMorale] CapAtLimits: " + CapAtLimits.ToString());
+                Logger.Debug("[Custom.GetCurrentAbsoluteMorale] CapAtLimits: " + CapAtLimits.ToString());
                 if (CurrentAbsoluteMorale < 0)
                 {
                     CurrentAbsoluteMorale = 0;
@@ -853,7 +853,7 @@ namespace DynamicCompanyMorale
                 }
             }
             int CurrentBaseMorale = simGameState.Constants.Story.StartingMorale + ArgoMoraleModifier;
-            Logger.LogLine("[Custom.GetCurrentBaseMorale]" + CurrentBaseMorale.ToString());
+            Logger.Debug("[Custom.GetCurrentBaseMorale]" + CurrentBaseMorale.ToString());
             return CurrentBaseMorale;
         }
 
@@ -868,7 +868,7 @@ namespace DynamicCompanyMorale
                     {
                         foreach (SimGameStat simGameStat in temporarySimGameResult.Stats)
                         {
-                            Logger.LogLine("[Custom.GetAbsoluteMoraleValueOfAllTemporaryResults] Check Stats: " + simGameStat.name + " (" + simGameStat.value + ") for " + (temporarySimGameResult.ResultDuration - temporarySimGameResult.DaysElapsed) + " days");
+                            Logger.Debug("[Custom.GetAbsoluteMoraleValueOfAllTemporaryResults] Check Stats: " + simGameStat.name + " (" + simGameStat.value + ") for " + (temporarySimGameResult.ResultDuration - temporarySimGameResult.DaysElapsed) + " days");
                             if (simGameStat.name == "Morale")
                             {
                                 AbsoluteMoraleValueOfAllTemporaryResults += int.Parse(simGameStat.value);
@@ -893,7 +893,7 @@ namespace DynamicCompanyMorale
                         {
                             if (simGameStat.name == "Morale")
                             {
-                                //Logger.LogLine("[Custom.IsTemporaryMoraleEventActive] True");
+                                //Logger.Debug("[Custom.IsTemporaryMoraleEventActive] True");
                                 IsTemporaryMoraleEventActive = true;
                             }
                         }

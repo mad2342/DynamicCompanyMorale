@@ -26,9 +26,9 @@ namespace DynamicCompanyMorale
                     float randomRoll = __instance.NetworkRandom.Float(0f, 1f);
                     if (randomRoll < eventChance)
                     {
-                        Logger.LogLine("----------------------------------------------------------------------------------------------------");
-                        Logger.LogLine("[SimGameState_OnDayPassed_POSTFIX] ActivateRandomEvent");
-                        Logger.LogLine("----------------------------------------------------------------------------------------------------");
+                        Logger.Debug("----------------------------------------------------------------------------------------------------");
+                        Logger.Debug("[SimGameState_OnDayPassed_POSTFIX] ActivateRandomEvent");
+                        Logger.Debug("----------------------------------------------------------------------------------------------------");
                         ___companyEventTracker.ActivateRandomEvent();
                     }
                 }
@@ -37,7 +37,7 @@ namespace DynamicCompanyMorale
                 {
                     if (SpecialEventCounter >= SpecialEventMax)
                     {
-                        Logger.LogLine("[SimGameState_OnDayPassed_POSTFIX] SpecialEventMax(" + SpecialEventMax + ") reached. Exiting.");
+                        Logger.Debug("[SimGameState_OnDayPassed_POSTFIX] SpecialEventMax(" + SpecialEventMax + ") reached. Exiting.");
                         return;
                     }
                     SpecialEventCounter++;
@@ -55,9 +55,9 @@ namespace DynamicCompanyMorale
                             Probability = 100,
                             RetainPilot = false
                         };
-                        Logger.LogLine("----------------------------------------------------------------------------------------------------");
-                        Logger.LogLine("[SimGameState_OnDayPassed_POSTFIX] AddSpecialEvent");
-                        Logger.LogLine("----------------------------------------------------------------------------------------------------");
+                        Logger.Debug("----------------------------------------------------------------------------------------------------");
+                        Logger.Debug("[SimGameState_OnDayPassed_POSTFIX] AddSpecialEvent");
+                        Logger.Debug("----------------------------------------------------------------------------------------------------");
                         __instance.AddSpecialEvent(evt, plt);
                         
                     }

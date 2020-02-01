@@ -25,7 +25,7 @@ namespace DynamicCompanyMorale
             {
                 int unixTimestamp = (int)(saveTime.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
                 string baseDirectory = $"{ DynamicCompanyMorale.ModDirectory}";
-                string filePath = baseDirectory + $"/SaveState/" + instanceGUID + "-" + unixTimestamp + ".json";
+                string filePath = baseDirectory + $"/.savestate/" + instanceGUID + "-" + unixTimestamp + ".json";
                 (new FileInfo(filePath)).Directory.Create();
                 using (StreamWriter writer = new StreamWriter(filePath, true))
                 {
@@ -36,7 +36,7 @@ namespace DynamicCompanyMorale
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex);
+                Logger.Error(ex);
             }
         }
 
@@ -46,7 +46,7 @@ namespace DynamicCompanyMorale
             {
                 int unixTimestamp = (int)(saveTime.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
                 string baseDirectory = $"{ DynamicCompanyMorale.ModDirectory}";
-                string filePath = baseDirectory + $"/SaveState/" + instanceGUID + "-" + unixTimestamp + ".json";
+                string filePath = baseDirectory + $"/.savestate/" + instanceGUID + "-" + unixTimestamp + ".json";
                 if (File.Exists(filePath))
                 {
                     using (StreamReader r = new StreamReader(filePath))
@@ -60,7 +60,7 @@ namespace DynamicCompanyMorale
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex);
+                Logger.Error(ex);
             }
         }
     }
