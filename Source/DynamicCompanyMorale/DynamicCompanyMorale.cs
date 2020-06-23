@@ -1,21 +1,21 @@
-﻿using Harmony;
-using BattleTech;
-using System.Reflection;
-using BattleTech.UI;
-using TMPro;
-using HBS;
-using UnityEngine;
-using System;
-using BattleTech.Save;
-using BattleTech.Save.SaveGameStructure;
+﻿using System;
 using System.Collections.Generic;
-using Localize;
-using BattleTech.UI.Tooltips;
-using Newtonsoft.Json;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
+using BattleTech;
+using BattleTech.Save;
+using BattleTech.Save.SaveGameStructure;
+using BattleTech.UI;
 using BattleTech.UI.TMProWrapper;
+using BattleTech.UI.Tooltips;
+using Harmony;
+using HBS;
+using Localize;
+using Newtonsoft.Json;
+using TMPro;
+using UnityEngine;
 
 namespace DynamicCompanyMorale
 {
@@ -53,6 +53,8 @@ namespace DynamicCompanyMorale
         }
     }
 
+
+
     [HarmonyPatch(typeof(GameInstanceSave), MethodType.Constructor)]
     [HarmonyPatch(new Type[] { typeof(GameInstance), typeof(SaveReason) })]
     public static class GameInstanceSave_Constructor_Patch
@@ -62,6 +64,8 @@ namespace DynamicCompanyMorale
             Helper.SaveState(__instance.InstanceGUID, __instance.SaveTime);
         }
     }
+
+
 
     [HarmonyPatch(typeof(GameInstance), "Load")]
     public static class GameInstance_Load_Patch
@@ -196,6 +200,8 @@ namespace DynamicCompanyMorale
         }
     }
 
+
+
     // Flashpoint additions
     [HarmonyPatch(typeof(SGFlashpointEndScreen), "InitializeData")]
     public static class SGFlashpointEndScreen_InitializeData_Patch
@@ -266,6 +272,7 @@ namespace DynamicCompanyMorale
                 Logger.Error(e);
             }
         }
+
         public static void Postfix(SGFlashpointEndScreen __instance, SimGameState sim)
         {
             try
@@ -288,6 +295,8 @@ namespace DynamicCompanyMorale
             }
         }
     }
+
+
 
     // This additional patch is needed because HBS calls SimGameState.BuildSimGameResults with a tenseOverride set :-\
     // Without patch the morale result is displayed as default without the TemporaryResult fluff
@@ -325,6 +334,8 @@ namespace DynamicCompanyMorale
             }
         }
     }
+
+
 
     [HarmonyPatch(typeof(SimGameState), "OnEventOptionSelected")]
     public static class SimGameState_OnEventOptionSelected_Patch
@@ -425,6 +436,8 @@ namespace DynamicCompanyMorale
         }
     }
 
+
+
     [HarmonyPatch(typeof(SimGameState), "OnEventDismissed")]
     public static class SimGameState_OnEventDismissed_Patch
     {
@@ -483,6 +496,8 @@ namespace DynamicCompanyMorale
         }
     }
 
+
+
     // The really dirty hack to override the wrong moraleValue tooltip during budget selection for next quarter (NextQuarterProjections)
     [HarmonyPatch(typeof(TooltipManager), "SpawnTooltip")]
     public static class TooltipManager_SpawnTooltip_Patch
@@ -515,6 +530,8 @@ namespace DynamicCompanyMorale
             }
         }
     }
+
+
 
     // BEN: This screen has actually 3 states (ScreenModes): DefaultStatus, QuarterlyReport, NextQuarterProjections. Keep in mind!
     [HarmonyPatch(typeof(SGCaptainsQuartersStatusScreen), "RefreshData")]
@@ -587,6 +604,8 @@ namespace DynamicCompanyMorale
         }
     }
     
+
+
     [HarmonyPatch(typeof(SGCaptainsQuartersStatusScreen), "Dismiss")]
     public static class SGCaptainsQuartersStatusScreen_Dismiss_Patch
     {
@@ -623,6 +642,8 @@ namespace DynamicCompanyMorale
         }
     }
 
+
+
     [HarmonyPatch(typeof(SGFinancialForecastWidget), "RefreshData")]
     public static class SSGFinancialForecastWidget_RefreshData_Patch
     {
@@ -654,6 +675,8 @@ namespace DynamicCompanyMorale
             }
         }
     }
+
+
 
     [HarmonyPatch(typeof(SGNavigationWidgetLeft), "UpdateData")]
     public static class SGNavigationWidgetLeft_UpdateData_Patch
@@ -702,6 +725,8 @@ namespace DynamicCompanyMorale
         }
     }
 
+
+
     [HarmonyPatch(typeof(SGMoraleBar), "RefreshTextForMoraleValue")]
     public static class SGMoraleBar_RefreshTextForMoraleValue_Patch
     {
@@ -718,8 +743,13 @@ namespace DynamicCompanyMorale
                 LocalizableText moraleValueText = (LocalizableText)AccessTools.Field(typeof(SGMoraleBar), "moraleValueText").GetValue(__instance);
                 LocalizableText moraleTitleText = (LocalizableText)AccessTools.Field(typeof(SGMoraleBar), "moraleTitleText").GetValue(__instance);
                 Color color;
+                String level = "";
+                String title = ""; ;
+                String details = "";
+
                 int moraleLevelFromMoraleValue = ___simState.GetMoraleLevelFromMoraleValue(value);
-                string text = "MORALE: " + ___simState.GetDescriptorForMoraleLevel(moraleLevelFromMoraleValue);
+                level = ___simState.GetDescriptorForMoraleLevel(moraleLevelFromMoraleValue);
+                title = "MORALE: " + level;
 
                 //Logger.Debug("[SGMoraleBar_RefreshTextForMoraleValue_POSTFIX] IsTemporaryMoraleEventActive: " + ___simState.IsTemporaryMoraleEventActive().ToString());
 
@@ -727,20 +757,20 @@ namespace DynamicCompanyMorale
                 {
                     color = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.green;
                     Logger.Debug("[SGMoraleBar_RefreshTextForMoraleValue_POSTFIX] Green");
-                    text += " (+" + EventMoraleModifier.ToString() + " from events)";
+                    title += " (+" + EventMoraleModifier.ToString() + " from events)";
                 }
                 else if (EventMoraleModifier < 0)
                 {
                     color = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.red;
                     Logger.Debug("[SGMoraleBar_RefreshTextForMoraleValue_POSTFIX] Red");
-                    text += " (" + EventMoraleModifier.ToString() + " from events)";
+                    title += " (" + EventMoraleModifier.ToString() + " from events)";
                 }
                 // Zero from two or more temp results
                 else if (Fields.IsTemporaryMoraleEventActive)
                 {
                     color = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.blue;
                     Logger.Debug("[SGMoraleBar_RefreshTextForMoraleValue_POSTFIX] Blue");
-                    text += " (+ - " + EventMoraleModifier.ToString() + " from events)";
+                    title += " (+ - " + EventMoraleModifier.ToString() + " from events)";
                 }
                 // Zero from no active temp results
                 else
@@ -752,10 +782,57 @@ namespace DynamicCompanyMorale
                 moraleValueText.faceColor = color;
                 moraleTitleText.SetText("{0}", new object[]
                 {
-                text
+                    title
                 });
 
                 Logger.Debug("----------------------------------------------------------------------------------------------------");
+
+
+
+                // Tooltip
+                Color red = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.red;
+                Color green = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.green;
+                Color blue = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.blue;
+                Color white = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.white;
+
+                details += $"<b><color=#{ColorUtility.ToHtmlStringRGBA(blue)}>BASE:</color> {___simState.Constants.Story.StartingMorale}</b>\n\n";
+                details += "The neutral baseline for a professional company.";
+                details += "\n\n";
+
+                details += $"<b><color=#{ColorUtility.ToHtmlStringRGBA(blue)}>DROPSHIP:</color> {___simState.GetDropshipMoraleModifier()}</b>\n\n";
+                details += "Many upgrades of your dropship will make life on a spaceship more comfortable.";
+                details += "\n\n";
+
+                int expenditureValue = ___simState.ExpenditureMoraleValue[___simState.ExpenditureLevel];
+                Color expenditureValueColor = expenditureValue >= 0 ? white : red;
+                details += $"<b><color=#{ColorUtility.ToHtmlStringRGBA(blue)}>EXPENDITURES:</color> <color=#{ColorUtility.ToHtmlStringRGBA(expenditureValueColor)}>{expenditureValue}</color></b>\n\n";
+                details += "The available money for 'Mech maintenance and your Mechwarrior's salaries will strongly influence morale.";
+                details += "\n\n";
+
+                if (DynamicCompanyMorale.Settings.RespectPilotTags)
+                {
+                    int crewValue = ___simState.GetCrewMoraleModifier();
+                    Color crewValueColor = crewValue >= 0 ? white : red;
+                    details += $"<b><color=#{ColorUtility.ToHtmlStringRGBA(blue)}>CREW:</color> <color=#{ColorUtility.ToHtmlStringRGBA(crewValueColor)}>{crewValue}</color></b>\n\n";
+                    details += "Some attributes of the mechwarriors you hire will have an impact on the overall morale of your crew.";
+                    details += "\n\n";
+                }
+
+                int eventValue = ___simState.GetAbsoluteMoraleValueOfAllTemporaryResults();
+                Color eventValueColor = eventValue >= 0 ? white : red;
+                details += $"<b><color=#{ColorUtility.ToHtmlStringRGBA(blue)}>EVENTS:</color> <color=#{ColorUtility.ToHtmlStringRGBA(eventValueColor)}>{eventValue}</color></b>\n\n";
+                details += "Certain events and their outcomes will <b>temporarily</b> rise or lower your company's morale.";
+                details += "\n\n";
+
+
+
+                GameObject moraleTitleTextGO = moraleTitleText.gameObject;
+                HBSTooltip Tooltip = moraleTitleTextGO.AddComponent<HBSTooltip>();
+                HBSTooltipStateData StateData = new HBSTooltipStateData();
+                BaseDescriptionDef TooltipContent = new BaseDescriptionDef("", title, details, "");
+
+                StateData.SetObject(TooltipContent);
+                Tooltip.SetDefaultStateData(StateData);
             }
             catch (Exception e)
             {
@@ -792,6 +869,8 @@ namespace DynamicCompanyMorale
             }
         }
 
+
+
         public static void SetMorale(this SimGameState simGameState, int val)
         {
             StatCollection companyStats = (StatCollection)AccessTools.Field(typeof(SimGameState), "companyStats").GetValue(simGameState);
@@ -805,6 +884,8 @@ namespace DynamicCompanyMorale
                 companyStats.AddStatistic<int>("Morale", val, new Statistic.Validator<int>(simGameState.MinimumZeroMaximumFiftyValidator<int>));
             }
         }
+
+
 
         public static int GetCurrentAbsoluteMorale(this SimGameState simGameState, bool CapAtLimits = true)
         {
@@ -830,32 +911,55 @@ namespace DynamicCompanyMorale
             return CurrentAbsoluteMorale;
         }
 
+
+
         public static int GetCurrentBaseMorale(this SimGameState simGameState)
         {
-            int ArgoMoraleModifier = 0;
-            if (simGameState.CurDropship == DropshipType.Argo)
+            int CurrentBaseMorale = simGameState.Constants.Story.StartingMorale;
+
+            int DropshipMoraleModifier = simGameState.GetDropshipMoraleModifier();
+            Logger.Info($"[Custom.GetCurrentBaseMorale] DropshipMoraleModifier: {DropshipMoraleModifier}");
+            CurrentBaseMorale += DropshipMoraleModifier;
+
+
+            if (DynamicCompanyMorale.Settings.RespectPilotTags) {
+                int PilotsMoraleModifier = simGameState.GetCrewMoraleModifier();
+                Logger.Info($"[Custom.GetCurrentBaseMorale] PilotsMoraleModifier: {PilotsMoraleModifier}");
+                CurrentBaseMorale += PilotsMoraleModifier;
+            }
+
+
+            Logger.Debug("[Custom.GetCurrentBaseMorale]" + CurrentBaseMorale.ToString());
+
+            return CurrentBaseMorale;
+        }
+
+
+
+        public static bool IsTemporaryMoraleEventActive(this SimGameState simGameState)
+        {
+            bool IsTemporaryMoraleEventActive = false;
+            foreach (TemporarySimGameResult temporarySimGameResult in simGameState.TemporaryResultTracker)
             {
-                foreach (ShipModuleUpgrade shipModuleUpgrade in simGameState.ShipUpgrades)
+                if (temporarySimGameResult.Scope == EventScope.Company)
                 {
-                    foreach (SimGameStat companyStat in shipModuleUpgrade.Stats)
+                    if (temporarySimGameResult.Stats != null)
                     {
-                        bool isNumeric = false;
-                        int modifier = 0;
-                        if (companyStat.name == "Morale")
+                        foreach (SimGameStat simGameStat in temporarySimGameResult.Stats)
                         {
-                            isNumeric = int.TryParse(companyStat.value, out modifier);
-                            if (isNumeric)
+                            if (simGameStat.name == "Morale")
                             {
-                                ArgoMoraleModifier += modifier;
+                                //Logger.Debug("[Custom.IsTemporaryMoraleEventActive] True");
+                                IsTemporaryMoraleEventActive = true;
                             }
                         }
                     }
                 }
             }
-            int CurrentBaseMorale = simGameState.Constants.Story.StartingMorale + ArgoMoraleModifier;
-            Logger.Debug("[Custom.GetCurrentBaseMorale]" + CurrentBaseMorale.ToString());
-            return CurrentBaseMorale;
+            return IsTemporaryMoraleEventActive;
         }
+
+
 
         public static int GetAbsoluteMoraleValueOfAllTemporaryResults(this SimGameState simGameState)
         {
@@ -880,27 +984,62 @@ namespace DynamicCompanyMorale
             return AbsoluteMoraleValueOfAllTemporaryResults;
         }
 
-        public static bool IsTemporaryMoraleEventActive(this SimGameState simGameState)
+
+
+        public static int GetDropshipMoraleModifier(this SimGameState simGameState)
         {
-            bool IsTemporaryMoraleEventActive = false;
-            foreach (TemporarySimGameResult temporarySimGameResult in simGameState.TemporaryResultTracker)
+            int result = 0;
+
+            if (simGameState.CurDropship == DropshipType.Argo)
             {
-                if (temporarySimGameResult.Scope == EventScope.Company)
+                foreach (ShipModuleUpgrade shipModuleUpgrade in simGameState.ShipUpgrades)
                 {
-                    if (temporarySimGameResult.Stats != null)
+                    foreach (SimGameStat companyStat in shipModuleUpgrade.Stats)
                     {
-                        foreach (SimGameStat simGameStat in temporarySimGameResult.Stats)
+                        bool isNumeric = false;
+                        int modifier = 0;
+                        if (companyStat.name == "Morale")
                         {
-                            if (simGameStat.name == "Morale")
+                            isNumeric = int.TryParse(companyStat.value, out modifier);
+                            if (isNumeric)
                             {
-                                //Logger.Debug("[Custom.IsTemporaryMoraleEventActive] True");
-                                IsTemporaryMoraleEventActive = true;
+                                result += modifier;
                             }
                         }
                     }
                 }
             }
-            return IsTemporaryMoraleEventActive;
+            return result;
+        }
+
+
+
+        public static int GetCrewMoraleModifier(this SimGameState simGameState)
+        {
+            int result = 0;
+
+            foreach (Pilot pilot in simGameState.PilotRoster)
+            {
+                foreach (string tag in DynamicCompanyMorale.Settings.PositivePilotTags)
+                {
+                    if (pilot.pilotDef.PilotTags.Contains(tag))
+                    {
+                        Logger.Info($"[Custom.GetCrewMoraleModifier] {pilot.Callsign}: {tag}");
+                        result++;
+                    }
+                }
+
+                foreach (string tag in DynamicCompanyMorale.Settings.NegativePilotTags)
+                {
+                    if (pilot.pilotDef.PilotTags.Contains(tag))
+                    {
+                        Logger.Info($"[Custom.GetCrewMoraleModifier] {pilot.Callsign}: {tag}");
+                        result--;
+                    }
+                }
+            }
+
+            return result;
         }
     }
 }

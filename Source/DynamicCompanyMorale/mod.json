@@ -11,7 +11,11 @@
 	"Settings": {
         "EventMoraleMultiplier": 4,
         "EventMoraleDurationBase": 15,
-        "EventMoraleDurationNumerator": 240
+        "EventMoraleDurationNumerator": 240,
+        "RespectPilotTags": true,
+        "PositivePilotTags": ["pilot_honest"],
+        "NegativePilotTags": ["pilot_disgraced"],
+        "PilotTagImpact": 1
     },
 
 	"Manifest": [
